@@ -400,7 +400,6 @@ impl MarkdownParser {
             .expect("Could not load inline grammar");
         let mut tree_cursor = block_tree.walk();
 
-        let mut i = 0;
         'outer: loop {
             let node = loop {
                 let kind = tree_cursor.node().kind();
@@ -418,6 +417,11 @@ impl MarkdownParser {
                 }
             };
             let mut range = node.range();
+            // Empty table cells are real block nodes but contain nothing for
+            // the inline grammar to parse. Keep their documented None mapping.
+            if range.start_byte == range.end_byte {
+                continue 'outer;
+            }
             let mut ranges = Vec::new();
             if tree_cursor.goto_first_child() {
                 while tree_cursor.goto_next_sibling() {
@@ -437,18 +441,23 @@ impl MarkdownParser {
                 tree_cursor.goto_parent();
             }
             ranges.push(range);
+            ranges.retain(|range| range.start_byte < range.end_byte);
+            if ranges.is_empty() {
+                continue 'outer;
+            }
             parser.set_included_ranges(&ranges).ok()?;
             let inline_tree = parser.parse_with_options(
                 callback,
-                old_tree.and_then(|old_tree| old_tree.inline_trees.get(i)),
+                // Reuse only this context's old tree. A positional index can
+                // instead select a neighboring cell after insertion/removal.
+                old_tree.and_then(|old_tree| old_tree.inline_tree(&node)),
                 options
                     .inline_options
                     .as_mut()
                     .map(|b_opt| b_opt.reborrow()),
             )?;
+            inline_indices.insert(node.id(), inline_trees.len());
             inline_trees.push(inline_tree);
-            inline_indices.insert(node.id(), i);
-            i += 1;
         }
         drop(tree_cursor);
         inline_trees.shrink_to_fit();
@@ -659,5 +668,129 @@ mod tests {
         assert_eq!(cursor.node().kind(), "pipe_table_cell");
         assert!(cursor.goto_first_child());
         assert_eq!(cursor.node().kind(), "emphasis");
+    }
+
+    fn assert_table_contexts(tree: &MarkdownTree) -> (usize, usize) {
+        assert!(!tree.block_tree().root_node().has_error());
+        assert!(tree
+            .inline_trees()
+            .iter()
+            .all(|tree| !tree.root_node().has_error()));
+        let mut empty = 0;
+        let mut nonempty = 0;
+        let mut stack = vec![tree.block_tree().root_node()];
+        while let Some(node) = stack.pop() {
+            if node.kind() == "pipe_table_cell" {
+                if node.start_byte() == node.end_byte() {
+                    empty += 1;
+                    assert!(tree.inline_tree(&node).is_none());
+                } else {
+                    nonempty += 1;
+                    let inline = tree
+                        .inline_tree(&node)
+                        .expect("Nonempty cell has no inline tree");
+                    assert_eq!(inline.root_node().range(), node.range());
+                }
+            }
+            stack.extend(
+                (0..node.named_child_count())
+                    .rev()
+                    .filter_map(|i| node.named_child(i as u32)),
+            );
+        }
+        assert_eq!(tree.inline_trees().len(), nonempty);
+        (empty, nonempty)
+    }
+
+    fn inline_snapshot(tree: &MarkdownTree) -> Vec<Vec<(String, Range)>> {
+        tree.inline_trees()
+            .iter()
+            .map(|tree| {
+                let mut nodes = Vec::new();
+                let mut stack = vec![tree.root_node()];
+                while let Some(node) = stack.pop() {
+                    nodes.push((node.kind().to_owned(), node.range()));
+                    stack.extend(
+                        (0..node.child_count())
+                            .rev()
+                            .filter_map(|i| node.child(i as u32)),
+                    );
+                }
+                nodes
+            })
+            .collect()
+    }
+
+    #[test]
+    fn empty_table_cells_have_no_inline_trees() {
+        for (source, expected) in [
+            ("| a | b |\n|---|---|\n||x|\n", (1, 3)),
+            ("|||\n|---|---|\n|||\n", (4, 0)),
+            ("|  |   |\n|---|---|\n|   | |\n", (4, 0)),
+            ("|| b |\n|---|---|\n| |*x*|\n", (2, 2)),
+        ] {
+            let tree = MarkdownParser::default()
+                .parse(source.as_bytes(), None)
+                .unwrap();
+            assert_eq!(assert_table_contexts(&tree), expected, "{source}");
+        }
+    }
+
+    fn point_at(source: &str, byte: usize) -> Point {
+        let prefix = &source.as_bytes()[..byte];
+        Point {
+            row: prefix.iter().filter(|&&chr| chr == b'\n').count(),
+            column: prefix
+                .iter()
+                .rposition(|&chr| chr == b'\n')
+                .map_or(byte, |position| byte - position - 1),
+        }
+    }
+
+    #[test]
+    fn table_cell_edits_match_fresh_inline_trees() {
+        let mut source = "|| b |\n|---|---|\n||*x*|\n| | [y](/target) |\n".to_owned();
+        let mut parser = MarkdownParser::default();
+        let mut tree = parser.parse(source.as_bytes(), None).unwrap();
+        assert_eq!(assert_table_contexts(&tree), (3, 3));
+        // Fill then clear empty header/body cells. Also add and remove a body
+        // column, shifting the later nonempty contexts' inline-tree indices.
+        for (needle, offset, removed, inserted) in [
+            ("|| b |", 1, 0, "header"),
+            ("\n||*x*|", 2, 0, "**new**"),
+            ("header", 0, "header".len(), ""),
+            ("**new**", 0, "**new**".len(), ""),
+            ("\n||*x*|", 2, 0, "[z](url)|"),
+            ("[z](url)|", 0, "[z](url)|".len(), ""),
+        ] {
+            let start = source.find(needle).unwrap() + offset;
+            let old_end = start + removed;
+            let start_position = point_at(&source, start);
+            let old_end_position = point_at(&source, old_end);
+            source.replace_range(start..old_end, inserted);
+            let new_end = start + inserted.len();
+            tree.edit(&InputEdit {
+                start_byte: start,
+                old_end_byte: old_end,
+                new_end_byte: new_end,
+                start_position,
+                old_end_position,
+                new_end_position: point_at(&source, new_end),
+            });
+            tree = parser.parse(source.as_bytes(), Some(&tree)).unwrap();
+            let fresh = MarkdownParser::default()
+                .parse(source.as_bytes(), None)
+                .unwrap();
+            assert_eq!(assert_table_contexts(&tree), assert_table_contexts(&fresh));
+            assert_eq!(
+                tree.block_tree().root_node().to_sexp(),
+                fresh.block_tree().root_node().to_sexp()
+            );
+            assert_eq!(
+                inline_snapshot(&tree),
+                inline_snapshot(&fresh),
+                "After inserting {inserted:?} into {needle:?}"
+            );
+        }
     }
 }

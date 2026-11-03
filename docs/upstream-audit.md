@@ -12,7 +12,7 @@ This is an editor parser audit, not a claim of complete CommonMark or GitHub ren
 | [#225](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/225) | Display-math content is not parsed as Markdown blocks. |
 | [#280](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/280) | Data and delimiter cell ranges consistently exclude surrounding whitespace. |
 | [#241](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/241) | Table cell ranges expose trimmed content consistently. |
-| [#112](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/112) | Adjacent pipes retain named empty cells without corrupting the row. |
+| [#112](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/112) | Adjacent pipes retain named empty cells without corrupting the row. The Rust wrapper skips zero-width inline contexts and preserves `None` for their inline trees, including through incremental edits. |
 | [#230](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/230) | Zero-content and whitespace-only table cells are accepted. |
 | [#242](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/242) | Empty and ragged data rows remain in the table; delimiter cells require hyphens. |
 | [#269](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/269) | Checked task markers no longer shadow `[x]` and `[X]` reference definitions. |

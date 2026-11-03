@@ -41,6 +41,8 @@ Both language objects expose `nodeTypeInfo`, `HIGHLIGHTS_QUERY` and `INJECTIONS_
 
 For a complete document, parse blocks first, then parse each `inline` node or `pipe_table_cell` using its source ranges. Exclude the children of inline nodes from those ranges because block continuation markers belong to the block grammar. The Rust `MarkdownParser`, enabled by the `parser` feature, provides this orchestration and incremental tree updates.
 
+Only nonempty content needs an inline parse. Empty table cells remain named block nodes, and the Rust wrapper returns `None` for their inline trees. Incremental reuse follows the same content context when cells or columns are inserted or removed.
+
 The Python `core` extra selects Tree-sitter `>=0.25.2,<0.26`. Python runtime 0.26.0 has a reproducible native traversal crash with larger documents, so this binding rejects that specific runtime before loading it. Runtime 0.25.2 passes the large-document regression; this compatibility guard does not claim to repair the external runtime.
 
 ## Building and testing
