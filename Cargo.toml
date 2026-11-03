@@ -1,27 +1,30 @@
 [package]
 name = "tree-sitter-md"
-description = "Markdown grammar for tree-sitter"
-version = "0.5.4"
-authors = ["MDeiml"]
+description = "Parse Markdown with block and inline Tree-sitter grammars."
+version = "1.0.0"
+authors = ["lumine-code"]
 license = "MIT"
 readme = "README.md"
 keywords = ["incremental", "parsing", "tree-sitter", "markdown"]
 categories = ["parsing", "text-editors"]
-repository = "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
+repository = "https://github.com/lumine-code/tree-sitter-markdown"
 edition = "2021"
 autoexamples = false
 
 build = "bindings/rust/build.rs"
 include = [
-  "bindings/rust/*",
-  "tree-sitter-markdown/src/*",
-  "tree-sitter-markdown-inline/src/*",
-  "tree-sitter-markdown/grammar.js",
-  "tree-sitter-markdown-inline/grammar.js",
-  "tree-sitter-markdown/queries/*",
-  "tree-sitter-markdown-inline/queries/*",
-  "common/grammar.js",
-  "common/html_entities.json",
+  "/LICENSE",
+  "/THIRD_PARTY_NOTICES",
+  "/README.md",
+  "/bindings/rust/*",
+  "/tree-sitter-markdown/src/*",
+  "/tree-sitter-markdown-inline/src/*",
+  "/tree-sitter-markdown/grammar.js",
+  "/tree-sitter-markdown-inline/grammar.js",
+  "/tree-sitter-markdown/queries/*",
+  "/tree-sitter-markdown-inline/queries/*",
+  "/common/common.js",
+  "/common/html_entities.json",
 ]
 
 [features]

@@ -1,0 +1,585 @@
+================================================================================
+#257 - Only an ordered list starting at one interrupts a paragraph
+================================================================================
+foo
+0. zero
+2. two
+9) nine
+10. ten
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (paragraph
+      (inline))))
+
+================================================================================
+#257 - Non-one numerals stay in setext heading content
+================================================================================
+Para line one,
+2) marker two
+---
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (setext_heading
+      (paragraph
+        (inline))
+      (setext_h2_underline))))
+
+================================================================================
+#257 - A list starting at one still interrupts
+================================================================================
+foo
+1. one
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (paragraph
+      (inline))
+    (list
+      (list_item
+        (list_marker_dot)
+        (paragraph
+          (inline))))))
+
+================================================================================
+#257 - Standalone lists may start at zero or another number
+================================================================================
+0) zero
+1) one
+
+9. nine
+10. ten
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (list
+      (list_item
+        (list_marker_parenthesis)
+        (paragraph
+          (inline)))
+      (list_item
+        (list_marker_parenthesis)
+        (paragraph
+          (inline)
+          (block_continuation))))
+    (list
+      (list_item
+        (list_marker_dot)
+        (paragraph
+          (inline)))
+      (list_item
+        (list_marker_dot)
+        (paragraph
+          (inline))))))
+
+================================================================================
+#263/#232 - ATX heading without a final newline
+================================================================================
+# Top
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (atx_heading
+      (atx_h1_marker)
+      (inline))))
+
+================================================================================
+#263 - Empty ATX heading without a final newline
+================================================================================
+#
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (atx_heading
+      (atx_h1_marker))))
+
+================================================================================
+#263 - Opening fence without a final newline
+================================================================================
+text
+```
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (paragraph
+      (inline))
+    (fenced_code_block
+      (fenced_code_block_delimiter))))
+
+================================================================================
+#263 - Empty list item without a final newline
+================================================================================
+- 
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (list
+      (list_item
+        (list_marker_minus)))))
+
+================================================================================
+#263 - Empty ordered list item without a final newline
+================================================================================
+2. 
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (list
+      (list_item
+        (list_marker_dot)))))
+
+================================================================================
+#263 - Setext underline without a final newline
+================================================================================
+top
+===
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (setext_heading
+      (paragraph
+        (inline))
+      (setext_h1_underline))))
+
+================================================================================
+#263 - Thematic break without a final newline
+================================================================================
+___
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (thematic_break)))
+
+================================================================================
+#269 - Checked task marker labels are valid reference definitions
+================================================================================
+[x]: /lower
+
+[X]: /upper
+---
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (link_reference_definition
+      (link_label)
+      (link_destination))
+    (link_reference_definition
+      (link_label)
+      (link_destination))
+    (thematic_break)))
+
+================================================================================
+#267 - ATX closing hashes are separate from heading content
+================================================================================
+## go ##
+### foo ### b
+## go#
+# go # #
+# escaped \###
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (atx_heading
+      (atx_h2_marker)
+      (inline))
+    (section
+      (atx_heading
+        (atx_h3_marker)
+        (inline))))
+  (section
+    (atx_heading
+      (atx_h2_marker)
+      (inline)))
+  (section
+    (atx_heading
+      (atx_h1_marker)
+      (inline)))
+  (section
+    (atx_heading
+      (atx_h1_marker)
+      (inline))))
+
+================================================================================
+#248 - A quoted ATX heading excludes the next continuation prefix
+================================================================================
+> # heading
+> some text
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (block_quote
+      (block_quote_marker)
+      (section
+        (atx_heading
+          (atx_h1_marker)
+          (inline))
+        (block_continuation)
+        (paragraph
+          (inline))))))
+
+================================================================================
+#233 - An HTML declaration closes on the opening line
+================================================================================
+<!DOCTYPE html>
+
+*text*
+
+# Heading
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (html_block)
+    (paragraph
+      (inline)))
+  (section
+    (atx_heading
+      (atx_h1_marker)
+      (inline))))
+
+================================================================================
+#93 - Numeric block tag names work with the normal runtime
+================================================================================
+<h1>foo</h1>
+
+# after
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (html_block
+      (block_continuation)))
+  (section
+    (atx_heading
+      (atx_h1_marker)
+      (inline))))
+
+================================================================================
+#112/#230 - Adjacent pipes retain empty named cells
+================================================================================
+|a|b|
+|-|-|
+||b|
+|a||
+|||
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (pipe_table
+      (pipe_table_header
+        (pipe_table_cell)
+        (pipe_table_cell))
+      (pipe_table_delimiter_row
+        (pipe_table_delimiter_cell)
+        (pipe_table_delimiter_cell))
+      (pipe_table_row
+        (pipe_table_cell)
+        (pipe_table_cell))
+      (pipe_table_row
+        (pipe_table_cell)
+        (pipe_table_cell))
+      (pipe_table_row
+        (pipe_table_cell)
+        (pipe_table_cell)))))
+
+================================================================================
+#112/#242 - Whitespace-only data rows do not become delimiter rows
+================================================================================
+|  | A1 |  |
+|--|----|--|
+|  |    |  |
+|  |    |  |
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (pipe_table
+      (pipe_table_header
+        (pipe_table_cell)
+        (pipe_table_cell)
+        (pipe_table_cell))
+      (pipe_table_delimiter_row
+        (pipe_table_delimiter_cell)
+        (pipe_table_delimiter_cell)
+        (pipe_table_delimiter_cell))
+      (pipe_table_row
+        (pipe_table_cell)
+        (pipe_table_cell)
+        (pipe_table_cell))
+      (pipe_table_row
+        (pipe_table_cell)
+        (pipe_table_cell)
+        (pipe_table_cell)))))
+
+================================================================================
+#230 - Empty header cells and ragged body rows are valid
+================================================================================
+||b|
+|-|-|
+|x|
+||x|y|
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (pipe_table
+      (pipe_table_header
+        (pipe_table_cell)
+        (pipe_table_cell))
+      (pipe_table_delimiter_row
+        (pipe_table_delimiter_cell)
+        (pipe_table_delimiter_cell))
+      (pipe_table_row
+        (pipe_table_cell))
+      (pipe_table_row
+        (pipe_table_cell)
+        (pipe_table_cell)
+        (pipe_table_cell)))))
+
+================================================================================
+#242 - A delimiter cell cannot be empty
+================================================================================
+|a|b|
+|-| |
+|x|y|
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (paragraph
+      (inline))))
+
+================================================================================
+#242 - A delimiter cell must contain hyphens
+================================================================================
+|a|b|
+|-|:|
+|x|y|
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (paragraph
+      (inline))))
+
+================================================================================
+#263/#242 - A table delimiter row may end at EOF
+================================================================================
+|a|b|
+|-|-|
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (pipe_table
+      (pipe_table_header
+        (pipe_table_cell)
+        (pipe_table_cell))
+      (pipe_table_delimiter_row
+        (pipe_table_delimiter_cell)
+        (pipe_table_delimiter_cell)))))
+
+================================================================================
+#241/#280 - Both table cell kinds expose trimmed content
+================================================================================
+| A | B  |
+| - | :--: |
+| C |   |
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (pipe_table
+      (pipe_table_header
+        (pipe_table_cell)
+        (pipe_table_cell))
+      (pipe_table_delimiter_row
+        (pipe_table_delimiter_cell)
+        (pipe_table_delimiter_cell
+          (pipe_table_align_left)
+          (pipe_table_align_right)))
+      (pipe_table_row
+        (pipe_table_cell)
+        (pipe_table_cell)))))
+
+================================================================================
+#225/#286 - Display math contents are opaque to Markdown
+================================================================================
+$$
+a
+=
+b
+-
+*
++
+# heading
+
+c
+$$
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (latex_block
+      (latex_span_delimiter)
+      (block_continuation)
+      (latex_block_content
+        (block_continuation)
+        (block_continuation)
+        (block_continuation)
+        (block_continuation)
+        (block_continuation)
+        (block_continuation)
+        (block_continuation)
+        (block_continuation)
+        (block_continuation))
+      (latex_span_delimiter))))
+
+================================================================================
+#225 - Display math obeys block quote boundaries
+================================================================================
+> $$
+> a
+> =
+> b
+> $$
+
+after
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (block_quote
+      (block_quote_marker)
+      (latex_block
+        (latex_span_delimiter)
+        (block_continuation)
+        (latex_block_content
+          (block_continuation)
+          (block_continuation)
+          (block_continuation))
+        (latex_span_delimiter)))
+    (paragraph
+      (inline))))
+
+================================================================================
+#225 - Inline display delimiters remain inline text
+================================================================================
+before $$a$$ after
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (paragraph
+      (inline))))
+
+================================================================================
+#127 - Nested markers exclude continuation indentation
+================================================================================
+- parent
+    - first
+    - second
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (list
+      (list_item
+        (list_marker_minus)
+        (paragraph
+          (inline)
+          (block_continuation))
+        (list
+          (list_item
+            (list_marker_minus)
+            (paragraph
+              (inline)
+              (block_continuation)))
+          (list_item
+            (list_marker_minus)
+            (paragraph
+              (inline))))))))
+
+================================================================================
+#59 - Repeated setext headings are recognized
+================================================================================
+title
+=====
+
+asdf
+
+title
+=====
+
+asdf
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (setext_heading
+      (paragraph
+        (inline))
+      (setext_h1_underline))
+    (paragraph
+      (inline))
+    (setext_heading
+      (paragraph
+        (inline))
+      (setext_h1_underline))
+    (paragraph
+      (inline))))
+
+================================================================================
+#202 - A lone hyphen after list text is a valid setext underline
+================================================================================
+- setup
+  -
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (list
+      (list_item
+        (list_marker_minus)
+        (setext_heading
+          (paragraph
+            (inline)
+            (block_continuation))
+          (setext_h2_underline))))))

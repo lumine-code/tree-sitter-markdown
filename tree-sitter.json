@@ -5,12 +5,8 @@
       "name": "markdown",
       "scope": "text.markdown",
       "path": "tree-sitter-markdown",
-      "external-files": [
-        "common/common.js"
-      ],
-      "file-types": [
-        "md"
-      ],
+      "external-files": ["common/common.js"],
+      "file-types": ["md"],
       "highlights": "tree-sitter-markdown/queries/highlights.scm",
       "injections": "tree-sitter-markdown/queries/injections.scm",
       "injection-regex": "^(markdown|md)$"
@@ -20,25 +16,23 @@
       "camelcase": "MarkdownInline",
       "scope": "text.markdown_inline",
       "path": "tree-sitter-markdown-inline",
-      "external-files": [
-        "common/common.js"
-      ],
+      "external-files": ["common/common.js"],
       "file-types": null,
       "highlights": "tree-sitter-markdown-inline/queries/highlights.scm",
       "injections": "tree-sitter-markdown-inline/queries/injections.scm"
     }
   ],
   "metadata": {
-    "version": "0.5.4",
+    "version": "1.0.0",
     "license": "MIT",
-    "description": "Markdown grammar for tree-sitter",
+    "description": "Parse Markdown with block and inline Tree-sitter grammars.",
     "authors": [
       {
-        "name": "MDeiml"
+        "name": "lumine-code"
       }
     ],
     "links": {
-      "repository": "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
+      "repository": "https://github.com/lumine-code/tree-sitter-markdown"
     }
   },
   "bindings": {

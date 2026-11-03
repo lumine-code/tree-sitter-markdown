@@ -15,7 +15,7 @@
       }
     },
     "children": {
-      "multiple": true,
+      "multiple": false,
       "required": true,
       "types": [
         {
@@ -40,10 +40,6 @@
         },
         {
           "type": "atx_h6_marker",
-          "named": true
-        },
-        {
-          "type": "block_continuation",
           "named": true
         }
       ]
@@ -84,6 +80,10 @@
         },
         {
           "type": "indented_code_block",
+          "named": true
+        },
+        {
+          "type": "latex_block",
           "named": true
         },
         {
@@ -286,6 +286,44 @@
     }
   },
   {
+    "type": "latex_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "block_continuation",
+          "named": true
+        },
+        {
+          "type": "latex_block_content",
+          "named": true
+        },
+        {
+          "type": "latex_span_delimiter",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "latex_block_content",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "block_continuation",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "link_destination",
     "named": true,
     "fields": {},
@@ -433,6 +471,10 @@
           "named": true
         },
         {
+          "type": "latex_block",
+          "named": true
+        },
+        {
           "type": "link_reference_definition",
           "named": true
         },
@@ -563,11 +605,6 @@
     }
   },
   {
-    "type": "pipe_table_cell",
-    "named": true,
-    "fields": {}
-  },
-  {
     "type": "pipe_table_delimiter_cell",
     "named": true,
     "fields": {},
@@ -607,7 +644,7 @@
     "fields": {},
     "children": {
       "multiple": true,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "pipe_table_cell",
@@ -622,7 +659,7 @@
     "fields": {},
     "children": {
       "multiple": true,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "pipe_table_cell",
@@ -661,6 +698,10 @@
         },
         {
           "type": "indented_code_block",
+          "named": true
+        },
+        {
+          "type": "latex_block",
           "named": true
         },
         {
@@ -918,6 +959,10 @@
     "named": true
   },
   {
+    "type": "latex_span_delimiter",
+    "named": true
+  },
+  {
     "type": "minus_metadata",
     "named": true
   },
@@ -931,6 +976,10 @@
   },
   {
     "type": "pipe_table_align_right",
+    "named": true
+  },
+  {
+    "type": "pipe_table_cell",
     "named": true
   },
   {

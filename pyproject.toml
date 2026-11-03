@@ -1,31 +1,31 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "tree-sitter-markdown"
-description = "Markdown grammar for tree-sitter"
-version = "0.5.4"
+description = "Parse Markdown with block and inline Tree-sitter grammars."
+version = "1.0.0"
 keywords = ["incremental", "parsing", "tree-sitter", "markdown"]
 classifiers = [
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
   "Topic :: Software Development :: Compilers",
   "Topic :: Text Processing :: Linguistic",
   "Typing :: Typed"
 ]
 authors = [
-  {name = "MDeiml"}
+  {name = "lumine-code"}
 ]
 requires-python = ">=3.10"
-license.text = "MIT"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES"]
 readme = "README.md"
 
 [project.urls]
-Homepage = "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
+Homepage = "https://github.com/lumine-code/tree-sitter-markdown"
 
 [project.optional-dependencies]
-core = ["tree-sitter~=0.23"]
+core = ["tree-sitter>=0.25.2,<0.26"]
 
 [tool.cibuildwheel]
 build = "cp310-*"

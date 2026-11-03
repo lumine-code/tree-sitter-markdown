@@ -1,16 +1,16 @@
 cmake_minimum_required(VERSION 3.13)
 
 project(tree-sitter-markdown
-        VERSION "0.5.4"
-        DESCRIPTION "Markdown grammar for tree-sitter"
-        HOMEPAGE_URL "https://github.com/tree-sitter-grammars/tree-sitter-markdown"
+        VERSION "1.0.0"
+        DESCRIPTION "Parse Markdown with block and inline Tree-sitter grammars."
+        HOMEPAGE_URL "https://github.com/lumine-code/tree-sitter-markdown"
         LANGUAGES C)
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 option(TREE_SITTER_REUSE_ALLOCATOR "Reuse the library allocator" OFF)
 option(ALL_EXTENSIONS "Enable all Markdown extensions" OFF)
 
-set(TREE_SITTER_ABI_VERSION 14 CACHE STRING "Tree-sitter ABI version")
+set(TREE_SITTER_ABI_VERSION 15 CACHE STRING "Tree-sitter ABI version")
 if(NOT ${TREE_SITTER_ABI_VERSION} MATCHES "^[0-9]+$")
     unset(TREE_SITTER_ABI_VERSION CACHE)
     message(FATAL_ERROR "TREE_SITTER_ABI_VERSION must be an integer")
@@ -23,7 +23,9 @@ include(GNUInstallDirs)
 macro(add_parser name)
     add_custom_command(OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/src/parser.c"
                        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/grammar.js"
-                       COMMAND "${CMAKE_COMMAND}" -E env ALL_EXTENSIONS=$<BOOL:${ALL_EXTENSIONS}>
+                               "${PROJECT_SOURCE_DIR}/common/common.js"
+                               "${PROJECT_SOURCE_DIR}/common/html_entities.json"
+                       COMMAND "${CMAKE_COMMAND}" -E env "ALL_EXTENSIONS=$<IF:$<BOOL:${ALL_EXTENSIONS}>,1,>"
                                 -- "${TREE_SITTER_CLI}" generate --abi=${TREE_SITTER_ABI_VERSION}
                        BYPRODUCTS "${CMAKE_CURRENT_SOURCE_DIR}/src/grammar.json"
                                   "${CMAKE_CURRENT_SOURCE_DIR}/src/node-types.json"
@@ -63,3 +65,6 @@ endmacro()
 add_subdirectory(tree-sitter-markdown tree-sitter-markdown)
 
 add_subdirectory(tree-sitter-markdown-inline tree-sitter-markdown-inline)
+
+install(FILES LICENSE THIRD_PARTY_NOTICES
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME}")

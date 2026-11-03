@@ -28,6 +28,8 @@ fn main() {
 
     c_config.compile("tree-sitter-markdown");
 
+    println!("cargo:rerun-if-changed={}", inline_dir.join("unicode.h").display());
+
     println!("cargo:rustc-check-cfg=cfg(with_highlights_query)");
     if !"tree-sitter-markdown/queries/highlights.scm".is_empty()
         && std::path::Path::new("tree-sitter-markdown/queries/highlights.scm").exists()

@@ -4,7 +4,7 @@
 //! [`INLINE_LANGUAGE`] to parse inline content.
 //!
 //! It also supplies [`MarkdownParser`] as a convenience wrapper around the two grammars.
-//! [`MarkdownParser::parse`] returns a [`MarkdownTree`] instread of a [`Tree`][Tree]. This struct
+//! [`MarkdownParser::parse`] returns a [`MarkdownTree`] instead of a [`Tree`][Tree]. This struct
 //! contains a block tree and an inline tree for each node in the block tree that has inline
 //! content.
 //!

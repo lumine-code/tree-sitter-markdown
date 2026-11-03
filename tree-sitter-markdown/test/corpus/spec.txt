@@ -771,8 +771,7 @@ Example 49 - https://github.github.com/gfm/#example-49
       (atx_h1_marker))
     (section
       (atx_heading
-        (atx_h3_marker)
-        (inline)))))
+        (atx_h3_marker)))))
 
 ================================================================================
 Example 50 - https://github.github.com/gfm/#example-50
@@ -2919,8 +2918,7 @@ Example 169 - https://github.github.com/gfm/#example-169
 (document
   (section
     (link_reference_definition
-      (link_label)
-      (link_destination))
+      (link_label))
     (paragraph
       (inline))))
 
@@ -3425,8 +3423,8 @@ Example 206 - https://github.github.com/gfm/#example-206
       (section
         (atx_heading
           (atx_h1_marker)
-          (inline)
-          (block_continuation))
+          (inline))
+        (block_continuation)
         (paragraph
           (inline
             (block_continuation)))))))
@@ -3447,8 +3445,8 @@ Example 207 - https://github.github.com/gfm/#example-207
       (section
         (atx_heading
           (atx_h1_marker)
-          (inline)
-          (block_continuation))
+          (inline))
+        (block_continuation)
         (paragraph
           (inline
             (block_continuation)))))))
@@ -3469,8 +3467,8 @@ Example 208 - https://github.github.com/gfm/#example-208
       (section
         (atx_heading
           (atx_h1_marker)
-          (inline)
-          (block_continuation))
+          (inline))
+        (block_continuation)
         (paragraph
           (inline
             (block_continuation)))))))
@@ -3506,8 +3504,8 @@ baz
       (section
         (atx_heading
           (atx_h1_marker)
-          (inline)
-          (block_continuation))
+          (inline))
+        (block_continuation)
         (paragraph
           (inline))))))
 
@@ -5840,3 +5838,20 @@ Example 334 - https://github.github.com/gfm/#example-334
         (list_marker_star)
         (paragraph
           (inline))))))
+
+================================================================================
+Example 107 - https://github.github.com/gfm/#example-107
+================================================================================
+```
+aaa
+    ```
+
+--------------------------------------------------------------------------------
+
+(document
+  (section
+    (fenced_code_block
+      (fenced_code_block_delimiter)
+      (block_continuation)
+      (code_fence_content
+        (block_continuation)))))

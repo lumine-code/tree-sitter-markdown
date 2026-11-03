@@ -1,1 +1,1 @@
-module.exports = require(".").inline;
+module.exports = require('./index.js').inline;

@@ -1,8 +1,6 @@
 #include "tree_sitter/parser.h"
 #include <assert.h>
 #include <string.h>
-#include <wchar.h>
-#include <wctype.h>
 
 // For explanation of the tokens see grammar.js
 typedef enum {
@@ -53,6 +51,12 @@ typedef enum {
     PLUS_METADATA,
     PIPE_TABLE_START,
     PIPE_TABLE_LINE_ENDING,
+    ATX_HEADING_CLOSING_SEQUENCE,
+    PIPE_TABLE_LEADING_PIPE,
+    PIPE_TABLE_NONEMPTY_CELL,
+    PIPE_TABLE_CELL,
+    LATEX_BLOCK_START,
+    LATEX_BLOCK_END,
 
     NUM_TOKEN_TYPES,
 } TokenType;
@@ -97,6 +101,10 @@ static bool is_punctuation(char chr) {
 // Determines if a character is an ASCII digit.
 static bool is_ascii_digit(int32_t chr) {
     return chr >= '0' && chr <= '9';
+}
+
+static bool is_ascii_alpha(int32_t chr) {
+    return (chr >= 'a' && chr <= 'z') || (chr >= 'A' && chr <= 'Z');
 }
 
 // Returns the indentation level which lines of a list item should have at
@@ -175,6 +183,12 @@ static const bool paragraph_interrupt_symbols[NUM_TOKEN_TYPES] = {
     false, // PLUS_METADATA,
     true,  // PIPE_TABLE_START,
     false, // PIPE_TABLE_LINE_ENDING,
+    false, // ATX_HEADING_CLOSING_SEQUENCE,
+    false, // PIPE_TABLE_LEADING_PIPE,
+    false, // PIPE_TABLE_NONEMPTY_CELL,
+    false, // PIPE_TABLE_CELL,
+    true,  // LATEX_BLOCK_START,
+    false, // LATEX_BLOCK_END,
 };
 
 // Whether the token opens a new block, i.e. pushes onto `open_blocks`.
@@ -201,6 +215,7 @@ static bool opens_block(TokenType token) {
         case HTML_BLOCK_5_START:
         case HTML_BLOCK_6_START:
         case HTML_BLOCK_7_START:
+        case LATEX_BLOCK_START:
             return true;
         default:
             return false;
@@ -217,6 +232,8 @@ static bool opens_block(TokenType token) {
 static const uint8_t STATE_MATCHING = 0x1 << 0;
 // Last line break was inside a paragraph
 static const uint8_t STATE_WAS_SOFT_LINE_BREAK = 0x1 << 1;
+// A synthetic final line ending has already been emitted at EOF.
+static const uint8_t STATE_EOF_LINE_ENDING = 0x1 << 2;
 // Block should be closed after next line break
 static const uint8_t STATE_CLOSE_BLOCK = 0x1 << 4;
 
@@ -416,6 +433,12 @@ static bool match(Scanner *s, TSLexer *lexer, Block block) {
             }
             if (s->indentation >= list_item_indentation(block)) {
                 s->indentation -= list_item_indentation(block);
+                // Extra indentation belongs to the continuation prefix, not
+                // the next list marker's visible source range. Keep its
+                // width available for nested-block recognition.
+                while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+                    s->indentation += advance(s, lexer);
+                }
                 return true;
             }
             if (lexer->lookahead == '\n' || lexer->lookahead == '\r') {
@@ -554,7 +577,7 @@ static bool parse_star(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
             break;
         }
     }
-    bool line_end = lexer->lookahead == '\n' || lexer->lookahead == '\r';
+    bool line_end = lexer->lookahead == '\n' || lexer->lookahead == '\r' || lexer->eof(lexer);
     bool dont_interrupt = false;
     if (star_count == 1 && line_end) {
         extra_indentation = 1;
@@ -627,7 +650,7 @@ static bool parse_thematic_break_underscore(Scanner *s, TSLexer *lexer,
             break;
         }
     }
-    bool line_end = lexer->lookahead == '\n' || lexer->lookahead == '\r';
+    bool line_end = lexer->lookahead == '\n' || lexer->lookahead == '\r' || lexer->eof(lexer);
     if (underscore_count >= 3 && line_end && valid_symbols[THEMATIC_BREAK]) {
         lexer->result_symbol = THEMATIC_BREAK;
         mark_end(s, lexer);
@@ -664,7 +687,7 @@ static bool parse_atx_heading(Scanner *s, TSLexer *lexer,
         }
         if (level <= 6 &&
             (lexer->lookahead == ' ' || lexer->lookahead == '\t' ||
-             lexer->lookahead == '\n' || lexer->lookahead == '\r')) {
+             lexer->lookahead == '\n' || lexer->lookahead == '\r' || lexer->eof(lexer))) {
             lexer->result_symbol = ATX_H1_MARKER + (level - 1);
             s->indentation = 0;
             mark_end(s, lexer);
@@ -672,6 +695,23 @@ static bool parse_atx_heading(Scanner *s, TSLexer *lexer,
         }
     }
     return false;
+}
+
+// A closing hash sequence must have whitespace before it and nothing but
+// whitespace after it. Trailing spaces without hashes are also outside inline
+// heading content. This token wins over the ordinary whitespace/text lexer.
+static bool parse_atx_heading_closing(TSLexer *lexer) {
+    if (lexer->lookahead != ' ' && lexer->lookahead != '\t') return false;
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+        lexer->advance(lexer, false);
+    }
+    while (lexer->lookahead == '#') lexer->advance(lexer, false);
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+        lexer->advance(lexer, false);
+    }
+    if (lexer->lookahead != '\n' && lexer->lookahead != '\r' && !lexer->eof(lexer)) return false;
+    lexer->result_symbol = ATX_HEADING_CLOSING_SEQUENCE;
+    return true;
 }
 
 static bool parse_setext_underline(Scanner *s, TSLexer *lexer,
@@ -685,13 +725,35 @@ static bool parse_setext_underline(Scanner *s, TSLexer *lexer,
         while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
             advance(s, lexer);
         }
-        if (lexer->lookahead == '\n' || lexer->lookahead == '\r') {
+        if (lexer->lookahead == '\n' || lexer->lookahead == '\r' || lexer->eof(lexer)) {
             lexer->result_symbol = SETEXT_H1_UNDERLINE;
             mark_end(s, lexer);
             return true;
         }
     }
     return false;
+}
+
+static bool parse_latex_block(Scanner *s, TSLexer *lexer,
+                              const bool *valid_symbols) {
+    if (s->indentation >= 4 ||
+        (!valid_symbols[LATEX_BLOCK_START] && !valid_symbols[LATEX_BLOCK_END])) return false;
+    size_t count = 0;
+    while (lexer->lookahead == '$') {
+        advance(s, lexer);
+        count++;
+    }
+    if (count != 2) return false;
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') advance(s, lexer);
+    if (lexer->lookahead != '\n' && lexer->lookahead != '\r' && !lexer->eof(lexer)) return false;
+    if (valid_symbols[LATEX_BLOCK_END]) {
+        lexer->result_symbol = LATEX_BLOCK_END;
+    } else {
+        lexer->result_symbol = LATEX_BLOCK_START;
+        if (!s->simulate) push_block(s, ANONYMOUS);
+    }
+    s->indentation = 0;
+    return true;
 }
 
 static bool parse_plus(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
@@ -766,7 +828,7 @@ static bool parse_plus(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
                 extra_indentation += advance(s, lexer);
             }
             bool dont_interrupt = false;
-            if (lexer->lookahead == '\r' || lexer->lookahead == '\n') {
+            if (lexer->lookahead == '\r' || lexer->lookahead == '\n' || lexer->eof(lexer)) {
                 extra_indentation = 1;
                 dont_interrupt = true;
             }
@@ -803,13 +865,14 @@ static bool parse_ordered_list_marker(Scanner *s, TSLexer *lexer,
          valid_symbols[LIST_MARKER_DOT] ||
          valid_symbols[LIST_MARKER_PARENTHESIS_DONT_INTERRUPT] ||
          valid_symbols[LIST_MARKER_DOT_DONT_INTERRUPT])) {
+        bool dont_interrupt = lexer->lookahead != '1';
         size_t digits = 1;
         advance(s, lexer);
         while (is_ascii_digit(lexer->lookahead)) {
             digits++;
             advance(s, lexer);
         }
-        bool dont_interrupt = digits > 1;
+        dont_interrupt = dont_interrupt || digits > 1;
         if (digits <= 9) {
             bool dot = false;
             bool parenthesis = false;
@@ -826,7 +889,7 @@ static bool parse_ordered_list_marker(Scanner *s, TSLexer *lexer,
                     extra_indentation += advance(s, lexer);
                 }
                 bool line_end =
-                    lexer->lookahead == '\n' || lexer->lookahead == '\r';
+                    lexer->lookahead == '\n' || lexer->lookahead == '\r' || lexer->eof(lexer);
                 if (line_end) {
                     extra_indentation = 1;
                     dont_interrupt = true;
@@ -889,7 +952,7 @@ static bool parse_minus(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
                 break;
             }
         }
-        bool line_end = lexer->lookahead == '\n' || lexer->lookahead == '\r';
+        bool line_end = lexer->lookahead == '\n' || lexer->lookahead == '\r' || lexer->eof(lexer);
         bool dont_interrupt = false;
         if (minus_count == 1 && line_end) {
             extra_indentation = 1;
@@ -1080,9 +1143,11 @@ static bool parse_html_block(Scanner *s, TSLexer *lexer,
     }
     char name[11];
     size_t name_length = 0;
-    while (iswalpha((wint_t)lexer->lookahead)) {
+    if (!is_ascii_alpha(lexer->lookahead)) return false;
+    while (is_ascii_alpha(lexer->lookahead) || is_ascii_digit(lexer->lookahead)) {
         if (name_length < 10) {
-            name[name_length++] = (char)towlower((wint_t)lexer->lookahead);
+            int32_t chr = lexer->lookahead;
+            name[name_length++] = (char)(chr >= 'A' && chr <= 'Z' ? chr + ('a' - 'A') : chr);
         } else {
             name_length = 12;
         }
@@ -1143,7 +1208,7 @@ static bool parse_html_block(Scanner *s, TSLexer *lexer,
 
     if (!tag_closed) {
         // tag name (continued)
-        while (iswalnum((wint_t)lexer->lookahead) || lexer->lookahead == '-') {
+        while ((is_ascii_alpha(lexer->lookahead) || is_ascii_digit(lexer->lookahead)) || lexer->lookahead == '-') {
             advance(s, lexer);
         }
         if (!starting_slash) {
@@ -1166,13 +1231,13 @@ static bool parse_html_block(Scanner *s, TSLexer *lexer,
                 if (!had_whitespace) {
                     return false;
                 }
-                if (!iswalpha((wint_t)lexer->lookahead) &&
+                if (!is_ascii_alpha(lexer->lookahead) &&
                     lexer->lookahead != '_' && lexer->lookahead != ':') {
                     return false;
                 }
                 had_whitespace = false;
                 advance(s, lexer);
-                while (iswalnum((wint_t)lexer->lookahead) ||
+                while ((is_ascii_alpha(lexer->lookahead) || is_ascii_digit(lexer->lookahead)) ||
                        lexer->lookahead == '_' || lexer->lookahead == '.' ||
                        lexer->lookahead == ':' || lexer->lookahead == '-') {
                     advance(s, lexer);
@@ -1263,7 +1328,6 @@ static bool parse_pipe_table(Scanner *s, TSLexer *lexer,
     // to have both
     bool starting_pipe = false;
     bool ending_pipe = false;
-    bool empty = true;
     if (lexer->lookahead == '|') {
         starting_pipe = true;
         advance(s, lexer);
@@ -1288,7 +1352,7 @@ static bool parse_pipe_table(Scanner *s, TSLexer *lexer,
             }
         }
     }
-    if (empty && cell_count == 0 && !(starting_pipe && ending_pipe)) {
+    if (cell_count == 0 && !(starting_pipe && ending_pipe)) {
         return false;
     }
     if (!ending_pipe) {
@@ -1326,63 +1390,68 @@ static bool parse_pipe_table(Scanner *s, TSLexer *lexer,
         }
     }
 
-    // check if delimiter row has the same number of cells and at least one pipe
+    // Every delimiter cell must contain a hyphen run. Empty cells are legal
+    // in data rows, never in the delimiter row; treating them as delimiters
+    // incorrectly interrupts a table at a following whitespace-only data row.
     size_t delimiter_cell_count = 0;
-    if (lexer->lookahead == '|') {
-        advance(s, lexer);
-    }
+    if (lexer->lookahead == '|') advance(s, lexer);
     for (;;) {
-        while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
-            advance(s, lexer);
-        }
-        if (lexer->lookahead == '|') {
-            delimiter_cell_count++;
-            advance(s, lexer);
-            continue;
-        }
-        if (lexer->lookahead == ':') {
-            advance(s, lexer);
-            if (lexer->lookahead != '-') {
-                return false;
-            }
-        }
-        bool had_one_minus = false;
-        while (lexer->lookahead == '-') {
-            had_one_minus = true;
-            advance(s, lexer);
-        }
-        if (had_one_minus) {
-            delimiter_cell_count++;
-        }
-        if (lexer->lookahead == ':') {
-            if (!had_one_minus) {
-                return false;
-            }
-            advance(s, lexer);
-        }
-        while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
-            advance(s, lexer);
-        }
-        if (lexer->lookahead == '|') {
-            if (!had_one_minus) {
-                delimiter_cell_count++;
-            }
-            advance(s, lexer);
-            continue;
-        }
-        if (lexer->lookahead != '\r' && lexer->lookahead != '\n') {
-            return false;
-        } else {
-            break;
-        }
+        while (lexer->lookahead == ' ' || lexer->lookahead == '\t') advance(s, lexer);
+        if (lexer->lookahead == ':') advance(s, lexer);
+        if (lexer->lookahead != '-') return false;
+        do { advance(s, lexer); } while (lexer->lookahead == '-');
+        if (lexer->lookahead == ':') advance(s, lexer);
+        delimiter_cell_count++;
+        while (lexer->lookahead == ' ' || lexer->lookahead == '\t') advance(s, lexer);
+        if (lexer->lookahead != '|') break;
+        advance(s, lexer);
+        while (lexer->lookahead == ' ' || lexer->lookahead == '\t') advance(s, lexer);
+        if (lexer->lookahead == '\n' || lexer->lookahead == '\r' || lexer->eof(lexer)) break;
     }
-    // if the cell counts are not equal then this is not a table
-    if (cell_count != delimiter_cell_count) {
-        return false;
-    }
+    if (lexer->lookahead != '\n' && lexer->lookahead != '\r' && !lexer->eof(lexer)) return false;
+    if (cell_count != delimiter_cell_count) return false;
 
     lexer->result_symbol = PIPE_TABLE_START;
     return true;
+}
+
+// Cells expose their trimmed source span. Whitespace-only and adjacent-pipe
+// cells still have a named node, whose span is empty after trimming.
+static bool parse_pipe_table_cell(TSLexer *lexer, const bool *valid_symbols) {
+    bool whitespace = false;
+    while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+        lexer->advance(lexer, true);
+        whitespace = true;
+    }
+    if (valid_symbols[PIPE_TABLE_LEADING_PIPE] && lexer->lookahead == '|') {
+        lexer->advance(lexer, false);
+        lexer->result_symbol = PIPE_TABLE_LEADING_PIPE;
+        return true;
+    }
+    bool content = false;
+    bool escaped = false;
+    while (lexer->lookahead != '\n' && lexer->lookahead != '\r' &&
+           !lexer->eof(lexer) && (lexer->lookahead != '|' || escaped)) {
+        int32_t chr = lexer->lookahead;
+        lexer->advance(lexer, false);
+        if (chr != ' ' && chr != '\t') {
+            content = true;
+            lexer->mark_end(lexer);
+        }
+        escaped = chr == '\\' && !escaped;
+    }
+    if (valid_symbols[PIPE_TABLE_NONEMPTY_CELL] && (content || whitespace)) {
+        if (!content) lexer->mark_end(lexer);
+        lexer->result_symbol = PIPE_TABLE_NONEMPTY_CELL;
+        return true;
+    }
+    if (valid_symbols[PIPE_TABLE_CELL] &&
+        (content || lexer->lookahead == '|' || whitespace)) {
+        if (!content) lexer->mark_end(lexer);
+        lexer->result_symbol = PIPE_TABLE_CELL;
+        return true;
+    }
+    return false;
 }
 
 static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
@@ -1398,6 +1467,13 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
     // now "requests" an error to stop the branch
     if (valid_symbols[TRIGGER_ERROR]) {
         return error(lexer);
+    }
+    if (valid_symbols[PIPE_TABLE_LEADING_PIPE] || valid_symbols[PIPE_TABLE_NONEMPTY_CELL] ||
+        valid_symbols[PIPE_TABLE_CELL]) {
+        if (parse_pipe_table_cell(lexer, valid_symbols)) return true;
+    }
+    if (valid_symbols[ATX_HEADING_CLOSING_SEQUENCE]) {
+        if (parse_atx_heading_closing(lexer)) return true;
     }
 
     // Close the inner most block after the next line break as requested. See
@@ -1415,6 +1491,25 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
             lexer->result_symbol = TOKEN_EOF;
             return true;
         }
+        // A final, unterminated line closes exactly like a physical line
+        // ending. Emit it once where the grammar requires a line ending;
+        // subsequent scans close the blocks or finish the document.
+        if (valid_symbols[LINE_ENDING] && lexer->get_column(lexer) > 0 &&
+            !(s->state & STATE_EOF_LINE_ENDING)) {
+            s->indentation = 0;
+            s->column = 0;
+            s->matched = 0;
+            s->state &= ~(STATE_WAS_SOFT_LINE_BREAK | STATE_MATCHING);
+            s->state |= STATE_EOF_LINE_ENDING;
+            lexer->result_symbol = LINE_ENDING;
+            return true;
+        }
+        if (valid_symbols[BLANK_LINE_START] && s->open_blocks.size > 0 &&
+            !valid_symbols[BLOCK_CLOSE] && !(s->state & STATE_EOF_LINE_ENDING)) {
+            s->state |= STATE_EOF_LINE_ENDING;
+            lexer->result_symbol = BLANK_LINE_START;
+            return true;
+        }
         if (s->open_blocks.size > 0) {
             lexer->result_symbol = BLOCK_CLOSE;
             if (!s->simulate)
@@ -1423,6 +1518,7 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
         }
         return false;
     }
+    s->state &= ~STATE_EOF_LINE_ENDING;
 
     if (!(s->state & STATE_MATCHING)) {
         // Parse any preceeding whitespace and remember its length. This makes a
@@ -1480,6 +1576,8 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
             case '#':
                 // A '#' could mark a atx heading
                 return parse_atx_heading(s, lexer, valid_symbols);
+            case '$':
+                return parse_latex_block(s, lexer, valid_symbols);
             case '=':
                 // A '=' could mark a setext underline
                 return parse_setext_underline(s, lexer, valid_symbols);

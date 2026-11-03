@@ -25,12 +25,14 @@ type NodeInfo =
  *
  * @example
  * import Parser from "tree-sitter";
- * import Markdown from "tree-sitter-markdown";
+ * import Markdown from "@lumine-code/tree-sitter-markdown";
  *
  * const parser = new Parser();
  * parser.setLanguage(Markdown);
  */
-declare const binding: {
+type Language = {
+  /** The grammar name. */
+  name: string;
   /**
    * The inner language object.
    * @private
@@ -57,4 +59,9 @@ declare const binding: {
   TAGS_QUERY?: string;
 };
 
-export default binding;
+declare const binding: Language & {
+  /** The inline grammar and its node metadata and queries. */
+  inline: Language;
+};
+
+export = binding;

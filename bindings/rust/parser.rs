@@ -18,8 +18,10 @@ pub struct MarkdownParser {
 
 /// A stateful object for walking a [`MarkdownTree`] efficiently.
 ///
-/// This exposes the same methods as [`TreeCursor`], but abstracts away the
-/// double block / inline structure of [`MarkdownTree`].
+/// This provides traversal across the block / inline structure of [`MarkdownTree`].
+/// It implements the movement methods documented below, rather than every
+/// [`TreeCursor`] method. In particular, raw-node resets and descendant indexing
+/// are not exposed for the combined tree.
 #[derive(Clone)]
 pub struct MarkdownCursor<'tree> {
     markdown_tree: &'tree MarkdownTree,
@@ -29,6 +31,9 @@ pub struct MarkdownCursor<'tree> {
 
 impl<'tree> MarkdownCursor<'tree> {
     /// Get the cursor's current [`Node`].
+    ///
+    /// This is a raw node from one constituent tree. Calling [`Node::walk`] on it
+    /// returns a [`TreeCursor`] for that tree, not a combined [`MarkdownCursor`].
     #[doc(alias = "ts_tree_cursor_current_node")]
     #[must_use]
     pub fn node(&self) -> Node<'tree> {
@@ -339,10 +344,19 @@ impl Default for MarkdownParser {
 }
 
 impl MarkdownParser {
-    /// Parse a slice of UTF8 text.
+    /// Parse UTF-8 text supplied by a callback.
+    ///
+    /// The callback receives a byte offset and a row/column position, with the column
+    /// measured in bytes. Return a UTF-8 slice starting at that byte offset, or an
+    /// empty slice at the end of the input. The parser may request the same offset
+    /// more than once and may move backwards. Slices must end at a UTF-8 character
+    /// boundary; they do not need to contain the rest of the document.
+    ///
+    /// For a contiguous input, use `|offset, _position| &source.as_bytes()[offset..]`.
+    /// The same callback supplies both block and inline parsing passes.
     ///
     /// # Arguments:
-    /// * `text` The UTF8-encoded text to parse.
+    /// * `callback` Supplies UTF-8 bytes starting at each requested offset.
     /// * `old_tree` A previous syntax tree parsed from the same document.
     ///   If the text of the document has changed since `old_tree` was
     ///   created, then you must edit `old_tree` to match the new text using

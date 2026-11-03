@@ -1,3 +1,4 @@
+; Modified by lumine-code in 2026 to inject display math.
 (fenced_code_block
   (info_string
     (language) @injection.language)
@@ -23,3 +24,7 @@
 
 ((inline) @injection.content
   (#set! injection.language "markdown_inline"))
+
+((latex_block
+  (latex_block_content) @injection.content)
+  (#set! injection.language "latex"))

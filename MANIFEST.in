@@ -1,0 +1,6 @@
+include LICENSE THIRD_PARTY_NOTICES README.md
+include tree-sitter.json
+recursive-include tree-sitter-markdown/src *.c *.h *.json
+recursive-include tree-sitter-markdown-inline/src *.c *.h *.json
+recursive-include tree-sitter-markdown/queries *.scm
+recursive-include tree-sitter-markdown-inline/queries *.scm

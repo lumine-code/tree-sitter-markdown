@@ -5,7 +5,7 @@ from setuptools import Extension, find_packages, setup
 from setuptools.command.build import build
 from setuptools.command.build_ext import build_ext
 from setuptools.command.egg_info import egg_info
-from wheel.bdist_wheel import bdist_wheel
+from setuptools.command.bdist_wheel import bdist_wheel
 
 
 class Build(build):
@@ -45,7 +45,8 @@ class BdistWheel(bdist_wheel):
 class EggInfo(egg_info):
     def find_sources(self):
         super().find_sources()
-        self.filelist.recursive_include("queries", "*.scm")
+        self.filelist.recursive_include("tree-sitter-markdown/queries", "*.scm")
+        self.filelist.recursive_include("tree-sitter-markdown-inline/queries", "*.scm")
         self.filelist.include("tree-sitter-markdown/src/tree_sitter/*.h")
         self.filelist.include("tree-sitter-markdown-inline/src/tree_sitter/*.h")
 
@@ -54,8 +55,7 @@ setup(
     packages=find_packages("bindings/python"),
     package_dir={"": "bindings/python"},
     package_data={
-        "tree_sitter_markdown": ["*.pyi", "py.typed"],
-        "tree_sitter_markdown.queries": ["*.scm"],
+        "tree_sitter_markdown": ["*.pyi", "py.typed", "queries/**/*.scm"],
     },
     ext_package="tree_sitter_markdown",
     ext_modules=[
@@ -71,8 +71,8 @@ setup(
                 ("TREE_SITTER_HIDE_SYMBOLS", None),
             ],
             include_dirs=[
-                "tree-sitter-markdown/src"
-                "tree-sitter-markdown-inline/src"
+                "tree-sitter-markdown/src",
+                "tree-sitter-markdown-inline/src",
             ],
             py_limited_api=not get_config_var("Py_GIL_DISABLED"),
         )

@@ -1,14 +1,12 @@
 {
-  "name": "@tree-sitter-grammars/tree-sitter-markdown",
-  "version": "0.5.4",
-  "description": "Markdown grammar for tree-sitter",
-  "repository": "github:tree-sitter-grammars/tree-sitter-markdown",
+  "name": "@lumine-code/tree-sitter-markdown",
+  "author": "lumine-code",
+  "version": "1.0.0",
+  "description": "Parse Markdown with block and inline Tree-sitter grammars.",
+  "repository": "https://github.com/lumine-code/tree-sitter-markdown",
   "license": "MIT",
   "main": "bindings/node",
   "types": "bindings/node",
-  "author": {
-    "name": "MDeiml"
-  },
   "keywords": [
     "incremental",
     "parsing",
@@ -16,10 +14,12 @@
     "markdown"
   ],
   "files": [
+    "LICENSE",
+    "THIRD_PARTY_NOTICES",
     "binding.gyp",
     "prebuilds/**",
-    "bindings/node/*",
     "tree-sitter.json",
+    "bindings/node/*",
     "tree-sitter-*/grammar.js",
     "tree-sitter-*/queries/*",
     "tree-sitter-*/src/**",
@@ -27,29 +27,54 @@
     "common/html_entities.json"
   ],
   "dependencies": {
-    "node-addon-api": "^8.2.1",
-    "node-gyp-build": "^4.8.2"
+    "node-addon-api": "^8.9.2",
+    "node-gyp-build": "^4.8.4"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.14.0",
     "prebuildify": "^6.0.1",
-    "tree-sitter-cli": "^0.24.3"
+    "prettier": "^3.9.10",
+    "tree-sitter-cli": "0.27.1",
+    "web-tree-sitter": "^0.27.1",
+    "tree-sitter": "^0.25.1"
   },
   "peerDependencies": {
-    "tree-sitter": "^0.21.1"
+    "tree-sitter": "^0.25.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bugs": "https://github.com/lumine-code/tree-sitter-markdown/issues",
+  "engines": {
+    "node": ">=24"
   },
   "peerDependenciesMeta": {
-    "tree_sitter": {
+    "tree-sitter": {
       "optional": true
     }
   },
   "scripts": {
     "build": "node scripts/build.js",
+    "build:all": "node scripts/build.js --all",
+    "build:native": "node scripts/build-native.js",
+    "build:wasm": "node scripts/build-wasm.js",
     "install": "node-gyp-build",
-    "prestart": "tree-sitter build --wasm",
     "start": "tree-sitter playground",
-    "test": "node --test bindings/node/*_test.js"
+    "test": "node scripts/test-all.js",
+    "test:node": "node --test bindings/node/*_test.js",
+    "test:corpus": "node scripts/test.js",
+    "test:wasm": "node --test test/*.test.js",
+    "check:generated": "node scripts/check-generated.js",
+    "lint": "eslint . --max-warnings 0 && prettier --check .",
+    "format": "prettier --write .",
+    "generate:unicode": "node scripts/generate-unicode.js",
+    "build:prebuilds": "prebuildify --napi --name tree-sitter-markdown"
   },
-  "publishConfig": {
-    "access": "public"
+  "allowScripts": {
+    "tree-sitter": true,
+    "tree-sitter-cli": true
   }
 }

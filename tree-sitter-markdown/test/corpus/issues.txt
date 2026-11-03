@@ -136,14 +136,10 @@ globalNS.method1(5, 10);
       (list_item
         (list_marker_star)
         (paragraph
-          (inline)
+          (inline
+            (block_continuation))
           (block_continuation))
         (list
-          (list_item
-            (list_marker_parenthesis)
-            (paragraph
-              (inline)
-              (block_continuation)))
           (list_item
             (list_marker_parenthesis)
             (paragraph
@@ -157,18 +153,9 @@ globalNS.method1(5, 10);
       (list_item
         (list_marker_star)
         (paragraph
-          (inline)
-          (block_continuation))
-        (list
-          (list_item
-            (list_marker_parenthesis)
-            (paragraph
-              (inline)
-              (block_continuation)))
-          (list_item
-            (list_marker_parenthesis)
-            (paragraph
-              (inline))))))))
+          (inline
+            (block_continuation)
+            (block_continuation)))))))
 
 ================================================================================
 #268 - HTML comment block that ends on its opening line

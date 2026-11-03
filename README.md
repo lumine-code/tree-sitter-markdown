@@ -1,82 +1,86 @@
 # tree-sitter-markdown
 
-[![CI][ci]](https://github.com/tree-sitter-grammars/tree-sitter-markdown/actions)
-[![discord][discord]](https://discord.gg/w7nTvsVJhm)
-[![matrix][matrix]](https://matrix.to/#/#tree-sitter-chat:matrix.org)
-[![npm][npm]](https://www.npmjs.com/package/@tree-sitter-grammars/tree-sitter-markdown)
-[![crates][crates]](https://crates.io/crates/tree-sitter-md)
-[![pypi][pypi]](https://pypi.org/project/tree-sitter-markdown/)
+Parse Markdown with block and inline Tree-sitter grammars.
 
-A Markdown parser for [tree-sitter].
+Fork of [tree-sitter-grammars/tree-sitter-markdown](https://github.com/tree-sitter-grammars/tree-sitter-markdown).
 
-![screenshot](https://github.com/MDeiml/tree-sitter-markdown/blob/split_parser/.github/screenshot.png)
+## Features
 
-The parser is designed to read markdown according to the [CommonMark Spec],
-but some extensions to the spec from different sources such as [Github flavored
-markdown] are also included. These can be toggled on or off at compile time.
-For specifics see [Extensions](#extensions)
+- **Grammars**: provides separate block and inline Tree-sitter grammars.
+- **Markdown**: recognizes CommonMark syntax and common GitHub Flavored Markdown extensions.
+- **Editor queries**: includes syntax highlighting and language injection queries for both grammars.
+- **Bindings**: supplies native Node.js, Rust, Python, C and Swift interfaces.
+- **WebAssembly**: builds both grammars for web-tree-sitter with the pinned Tree-sitter CLI.
 
-## Goals
+This parser is intended for syntax highlighting and editor tooling. Its incremental trees approximate some Markdown rules, including reference-link matching; it does not claim complete CommonMark or GitHub renderer equivalence. The corpus retains explicitly skipped cases documenting known limitations.
 
-Even though this parser has existed for some while and obvious issues are
-mostly solved, there are still lots of inaccuracies in the output. These stem
-from restricting a complex format such as markdown to the quite restricting
-tree-sitter parsing rules.
+## Installation
 
-As such it is not recommended to use this parser where correctness is
-important. The main goal for this parser is to provide syntactical information
-for syntax highlighting in parsers such as [neovim] and [helix].
+Node.js 24 or newer and a native C/C++ build toolchain are required when no matching prebuild is available.
 
-## Contributing
+Install from an immutable Git commit. Replace `COMMIT` with the full reviewed commit SHA:
 
-All contributions are welcome. For details refer to [CONTRIBUTING.md].
+```sh
+npm install github:lumine-code/tree-sitter-markdown#COMMIT tree-sitter
+```
+
+## Usage
+
+```js
+const Parser = require("tree-sitter");
+const Markdown = require("@lumine-code/tree-sitter-markdown");
+
+const blocks = new Parser().setLanguage(Markdown);
+const blockTree = blocks.parse("# Heading\n\nSome *emphasis*.\n");
+
+const inline = new Parser().setLanguage(Markdown.inline);
+const inlineTree = inline.parse("Some *emphasis*.");
+```
+
+Both language objects expose `nodeTypeInfo`, `HIGHLIGHTS_QUERY` and `INJECTIONS_QUERY`. Optional query properties are `undefined` when that grammar does not ship the corresponding query. CommonJS `require()` and ESM default imports are supported; the inline entry is also available at `@lumine-code/tree-sitter-markdown/bindings/node/inline.js`.
+
+For a complete document, parse blocks first, then parse each `inline` node or `pipe_table_cell` using its source ranges. Exclude the children of inline nodes from those ranges because block continuation markers belong to the block grammar. The Rust `MarkdownParser`, enabled by the `parser` feature, provides this orchestration and incremental tree updates.
+
+The Python `core` extra selects Tree-sitter `>=0.25.2,<0.26`. Python runtime 0.26.0 has a reproducible native traversal crash with larger documents, so this binding rejects that specific runtime before loading it. Runtime 0.25.2 passes the large-document regression; this compatibility guard does not claim to repair the external runtime.
+
+## Building and testing
+
+```sh
+npm ci
+npm run build
+npm run build:native
+npm run build:wasm
+npm test
+npm run lint
+npm pack --dry-run
+```
+
+`npm run build` regenerates both grammars with the exact Tree-sitter CLI version declared in `package.json`. `npm run build:wasm` writes `tree-sitter-markdown.wasm` and `tree-sitter-markdown_inline.wasm` at the repository root. The CLI provisions its pinned WASI SDK and Binaryen on demand; existing installations can be selected with `TREE_SITTER_WASI_SDK_PATH` and `TREE_SITTER_BINARYEN_PATH`. Modern web-tree-sitter can load these modules directly, without statically linking this grammar into its runtime.
+
+`npm test` runs native binding tests, both corpus suites and WebAssembly regressions. CI exercises Node.js 24 on Linux, macOS and Windows, checks generated files, and tests the optional extensions in a separate build. Use `npm run check:generated` after committing generated output to verify that regeneration leaves the source tree unchanged.
+
+The [upstream audit](docs/upstream-audit.md) records all reviewed issues and pull requests, implemented fixes and remaining limitations. Release workflows attach the source package and WASM grammars to GitHub releases after CI; they do not publish to a package registry.
 
 ## Extensions
 
-Extensions can be enabled at compile time through environment variables. Some
-of them are on by default, these can be disabled with the environment variable
-`NO_DEFAULT_EXTENSIONS`.
+Extensions are selected when `grammar.js` is evaluated during generation. Setting an environment variable after installing a pre-generated grammar does not change its syntax. Rust Cargo features do not regenerate the grammar; consumers who need a different dialect must regenerate the source with Node.js and the pinned Tree-sitter CLI before building their bindings.
 
-| Name | Environment variable | Specification | Default | Also enables |
-|:----:|:--------------------:|:-------------:|:-------:|:------------:|
-| Github flavored markdown | `EXTENSION_GFM` | [link](https://github.github.com/gfm/) | ✓ | Task lists, strikethrough, pipe tables |
-| Task lists | `EXTENSION_TASK_LIST` | [link](https://github.github.com/gfm/#task-list-items-extension-) | ✓ |  |
-| Strikethrough | `EXTENSION_STRIKETHROUGH` | [link](https://github.github.com/gfm/#strikethrough-extension-) | ✓ |  |
-| Pipe tables | `EXTENSION_PIPE_TABLE` | [link](https://github.github.com/gfm/#tables-extension-) | ✓ |  |
-| YAML metadata | `EXTENSION_MINUS_METADATA` | [link](https://gohugo.io/content-management/front-matter/) | ✓ |  |
-| TOML metadata | `EXTENSION_PLUS_METADATA` | [link](https://gohugo.io/content-management/front-matter/) | ✓ |  |
-| Tags | `EXTENSION_TAGS` | [link](https://help.obsidian.md/Editing+and+formatting/Tags#Tag+format) |  |  |
-| Wiki Link | `EXTENSION_WIKI_LINK` | [link](https://help.obsidian.md/Linking+notes+and+files/Internal+links) |  |  |
+Set a variable to a nonempty value to enable its extension. `NO_DEFAULT_EXTENSIONS` disables the default set. `npm run build:all` enables every extension without shell-specific environment syntax.
 
-## Usage in Editors
+| Extension                       | Environment variable       | Default |
+| ------------------------------- | -------------------------- | ------- |
+| GitHub Flavored Markdown bundle | `EXTENSION_GFM`            | yes     |
+| Task lists                      | `EXTENSION_TASK_LIST`      | yes     |
+| Strikethrough                   | `EXTENSION_STRIKETHROUGH`  | yes     |
+| Pipe tables                     | `EXTENSION_PIPE_TABLE`     | yes     |
+| YAML metadata                   | `EXTENSION_MINUS_METADATA` | yes     |
+| TOML metadata                   | `EXTENSION_PLUS_METADATA`  | yes     |
+| LaTeX math                      | `EXTENSION_LATEX`          | yes     |
+| Tags                            | `EXTENSION_TAGS`           | no      |
+| Wiki links                      | `EXTENSION_WIKI_LINK`      | no      |
 
-For guides on how to use this parser in a specific editor, refer to that
-editor's specific documentation, e.g.
-* [neovim](https://github.com/nvim-treesitter/nvim-treesitter)
-* [helix](https://docs.helix-editor.com/guides/adding_languages.html)
+The GFM bundle enables task lists, strikethrough and pipe tables. Metadata, math, tags and wiki links are dialect extensions rather than a promise of GitHub rendering behavior.
 
-## Standalone usage
+## Contributing
 
-To use the two grammars, first parse the document with the block
-grammar. Then perform a second parse with the inline grammar using
-`ts_parser_set_included_ranges` to specify which parts are inline content.
-These parts are marked as `inline` nodes. Children of those inline nodes should
-be excluded from these ranges. For an example implementation see `lib.rs` in
-the `bindings` folder.
-
-### Usage with WASM
-
-Unfortunately using this parser with WASM/web-tree-sitter does not work out of the box at the moment. This is because the parser uses some C functions that are not exported by tree-sitter by default. To fix this you can statically link the parser to tree-sitter. See also https://github.com/tree-sitter/tree-sitter/issues/949, https://github.com/MDeiml/tree-sitter-markdown/issues/126, and https://github.com/MDeiml/tree-sitter-markdown/issues/93
-
-[CommonMark Spec]: https://spec.commonmark.org/
-[Github flavored markdown]: https://github.github.com/gfm/
-[tree-sitter]: https://tree-sitter.github.io/tree-sitter/
-[neovim]: https://neovim.io/
-[helix]: https://helix-editor.com/
-[CONTRIBUTING.md]: https://github.com/MDeiml/tree-sitter-markdown/blob/split_parser/CONTRIBUTING.md
-[ci]: https://img.shields.io/github/actions/workflow/status/tree-sitter-grammars/tree-sitter-markdown/ci.yml?logo=github&label=CI
-[discord]: https://img.shields.io/discord/1063097320771698699?logo=discord&label=discord
-[matrix]: https://img.shields.io/matrix/tree-sitter-chat%3Amatrix.org?logo=matrix&label=matrix
-[npm]: https://img.shields.io/npm/v/%40tree-sitter-grammars%2Ftree-sitter-markdown?logo=npm
-[crates]: https://img.shields.io/crates/v/tree-sitter-md?logo=rust
-[pypi]: https://img.shields.io/pypi/v/tree-sitter-markdown?logo=pypi&logoColor=ffd242
+Got ideas to make this package better, found a bug, or want to help add new features? Just drop your thoughts on GitHub. Any feedback is welcome!

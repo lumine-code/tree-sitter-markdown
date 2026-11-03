@@ -1,4 +1,5 @@
 ;From nvim-treesitter/nvim-treesitter
+; Modified by lumine-code in 2026 to highlight display math.
 (atx_heading
   (inline) @text.title)
 
@@ -25,6 +26,9 @@
 (fenced_code_block_delimiter) @punctuation.delimiter
 
 (code_fence_content) @none
+
+(latex_block_content) @text.math
+(latex_span_delimiter) @punctuation.delimiter
 
 (link_destination) @text.uri
 

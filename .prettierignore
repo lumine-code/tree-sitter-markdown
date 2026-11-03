@@ -1,0 +1,14 @@
+node_modules/
+build/
+prebuilds/
+target/
+.build/
+dist/
+**/src/
+**/test/corpus/
+**/queries/
+common/html_entities.json
+*.wasm
+*.tgz
+*.lock
+Package.resolved

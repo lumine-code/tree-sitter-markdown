@@ -1,0 +1,312 @@
+================================================================================
+Intraword numeric underscores (#276)
+================================================================================
+use ota_0 or ota_1
+Φ_2. Współczynnik λ_4
+abc_2 xyz_4
+foo_bar_baz
+123_456_789
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Numeric underscore emphasis (#151)
+================================================================================
+_1_ _hello1_ _123_456_ __2__
+
+--------------------------------------------------------------------------------
+
+(inline
+  (emphasis (emphasis_delimiter) (emphasis_delimiter))
+  (emphasis (emphasis_delimiter) (emphasis_delimiter))
+  (emphasis (emphasis_delimiter) (emphasis_delimiter))
+  (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter)))
+
+================================================================================
+Consecutive images (#186)
+================================================================================
+![img](img1.jpg)
+![img](img2.jpg)
+![img](img3.jpg)
+![img](img4.jpg)
+![img](img5.jpg)
+![img](img6.jpg)
+![img](img7.jpg)
+![img](img8.jpg)
+![img](img9.jpg)
+![img](img10.jpg)
+![img](img11.jpg)
+![img](img12.jpg)
+
+--------------------------------------------------------------------------------
+
+(inline
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination))
+  (image (image_description) (link_destination)))
+
+================================================================================
+Approximate values are plain tilde text (#236)
+================================================================================
+~a ~b ~c ~d
+The floor is raised (~14 vs ~7) and the ceiling lowered (~55 vs ~58).
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Independent bold text ending in punctuation (#209)
+================================================================================
+**What's missing:**
+1. **Streaming the work as it happens**
+2. **Visibility of what's running**
+**Possible solutions:**
+
+--------------------------------------------------------------------------------
+
+(inline
+  (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter))
+  (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter))
+  (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter))
+  (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter)))
+
+================================================================================
+Dollar signs in link labels and URLs (#206)
+================================================================================
+[$NVIM_APPNAME](https://neovim.io/doc/user/starting.html#$NVIM_APPNAME)
+
+--------------------------------------------------------------------------------
+
+(inline (inline_link (link_text) (link_destination)))
+
+================================================================================
+Whitespace-only brackets are plain text (#9)
+================================================================================
+[
+ ]
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+HTML attributes containing tag text (#11)
+================================================================================
+<a foo="bar" bam = 'baz <em>"</em>'
+_boolean zoop:33=zoop:33 />
+
+--------------------------------------------------------------------------------
+
+(inline (html_tag))
+
+================================================================================
+Code span has priority over autolink (#7)
+================================================================================
+`<http://foo.bar.`baz>`
+
+--------------------------------------------------------------------------------
+
+(inline (code_span (code_span_delimiter) (code_span_delimiter)))
+
+================================================================================
+Image angle destination has priority over HTML (#10)
+================================================================================
+![foo](<url>)
+
+--------------------------------------------------------------------------------
+
+(inline (image (image_description) (link_destination)))
+
+================================================================================
+Underscores cannot open or close inside words (1)
+================================================================================
+_foo_2
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Underscores cannot open or close inside words (2)
+================================================================================
+foo_2_
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Underscores cannot open or close inside words (3)
+================================================================================
+1_foo_2
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Underscores cannot open or close inside words (4)
+================================================================================
+α_2 β_4
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Unicode whitespace and punctuation determine flanking
+================================================================================
+* word* *word * «_word_»
+
+--------------------------------------------------------------------------------
+
+(inline (emphasis (emphasis_delimiter) (emphasis_delimiter)))
+
+================================================================================
+Form feed is ordinary text whitespace, not a URL character
+================================================================================
+ab *word* *word* [link](ab)
+
+--------------------------------------------------------------------------------
+
+(inline (shortcut_link (link_text)))
+
+================================================================================
+Single and double strikes use complete delimiters
+================================================================================
+~single~ ~~double~~
+
+--------------------------------------------------------------------------------
+
+(inline (strikethrough (emphasis_delimiter) (emphasis_delimiter)) (strikethrough (emphasis_delimiter) (emphasis_delimiter)))
+
+================================================================================
+Strike runs must have matching lengths (1)
+================================================================================
+~a~~
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Strike runs must have matching lengths (2)
+================================================================================
+~~b~
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Strike runs must have matching lengths (3)
+================================================================================
+~~~c~~~
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Strike lookahead skips closed code spans
+================================================================================
+~a `~code` b~ ~~c `~~code` d~~
+
+--------------------------------------------------------------------------------
+
+(inline (strikethrough (emphasis_delimiter) (code_span (code_span_delimiter) (code_span_delimiter)) (emphasis_delimiter)) (strikethrough (emphasis_delimiter) (code_span (code_span_delimiter) (code_span_delimiter)) (emphasis_delimiter)))
+
+================================================================================
+Unmatched backticks stay ordinary strike content
+================================================================================
+~a `b~
+
+--------------------------------------------------------------------------------
+
+(inline (strikethrough (emphasis_delimiter) (emphasis_delimiter)))
+
+================================================================================
+Strike lookahead skips escaped delimiters
+================================================================================
+~a \~ b~
+
+--------------------------------------------------------------------------------
+
+(inline (strikethrough (emphasis_delimiter) (backslash_escape) (emphasis_delimiter)))
+
+================================================================================
+Different strike lengths can nest
+================================================================================
+~one ~~two~~ three~
+
+--------------------------------------------------------------------------------
+
+(inline (strikethrough (emphasis_delimiter) (strikethrough (emphasis_delimiter) (emphasis_delimiter)) (emphasis_delimiter)))
+
+================================================================================
+Whitespace-only text remains valid in inline links
+================================================================================
+[ ](/uri) [
+ ](/uri) [](/uri)
+
+--------------------------------------------------------------------------------
+
+(inline (inline_link (link_text) (link_destination)) (inline_link (link_text) (link_destination)) (inline_link (link_destination)))
+
+================================================================================
+Whitespace-only brackets are never shortcut links
+================================================================================
+[ ] [
+ ] [ ] []
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Link-label math can contain balanced brackets
+================================================================================
+[$[x]$](/uri) [plain](/uri) $after$
+
+--------------------------------------------------------------------------------
+
+(inline (inline_link (link_text (latex_block (latex_span_delimiter) (latex_span_delimiter))) (link_destination)) (inline_link (link_text) (link_destination)) (latex_block (latex_span_delimiter) (latex_span_delimiter)))
+
+================================================================================
+Quoted HTML attributes are opaque to Markdown
+================================================================================
+<a title="[link](/uri) <em>text</em>">
+
+--------------------------------------------------------------------------------
+
+(inline (html_tag))
+
+================================================================================
+HTML inside a code span stays code
+================================================================================
+`<a title="[link](/uri)">`
+
+--------------------------------------------------------------------------------
+
+(inline (code_span (code_span_delimiter) (code_span_delimiter)))
+
+================================================================================
+Rule of three has no arbitrary content-length cutoff
+================================================================================
+*before**xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx**after*
+
+--------------------------------------------------------------------------------
+
+(inline (emphasis (emphasis_delimiter) (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter)) (emphasis_delimiter)))
