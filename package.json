@@ -76,5 +76,13 @@
   "allowScripts": {
     "tree-sitter": true,
     "tree-sitter-cli": true
+  },
+  "overrides": {
+    "eslint@^10.14.0": {
+      "minimatch": "11.0.4"
+    },
+    "@eslint/config-array@0.23.5": {
+      "minimatch": "11.0.4"
+    }
   }
 }
