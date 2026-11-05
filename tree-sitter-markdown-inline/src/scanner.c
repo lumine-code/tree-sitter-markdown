@@ -1,5 +1,7 @@
 #include "tree_sitter/parser.h"
 #include "unicode.h"
+#include "emphasis.h"
+#include "inline-preparation.h"
 
 #ifdef _MSC_VER
 #define UNUSED
@@ -13,12 +15,33 @@ typedef enum {
     TRIGGER_ERROR,
     CODE_SPAN_START,
     CODE_SPAN_CLOSE,
-    EMPHASIS_OPEN_STAR,
-    EMPHASIS_OPEN_UNDERSCORE,
-    EMPHASIS_CLOSE_STAR,
-    EMPHASIS_CLOSE_UNDERSCORE,
+    OPEN_STAR_OPEN_0_EM,
+    OPEN_STAR_OPEN_0_STRONG,
+    OPEN_STAR_OPEN_1_EM,
+    OPEN_STAR_OPEN_1_STRONG,
+    OPEN_STAR_OPEN_2_EM,
+    OPEN_STAR_OPEN_2_STRONG,
+    OPEN_STAR_BOTH_0_EM,
+    OPEN_STAR_BOTH_0_STRONG,
+    OPEN_STAR_BOTH_1_EM,
+    OPEN_STAR_BOTH_1_STRONG,
+    OPEN_STAR_BOTH_2_EM,
+    OPEN_STAR_BOTH_2_STRONG,
+    OPEN_UNDERSCORE_OPEN_0_EM,
+    OPEN_UNDERSCORE_OPEN_0_STRONG,
+    OPEN_UNDERSCORE_OPEN_1_EM,
+    OPEN_UNDERSCORE_OPEN_1_STRONG,
+    OPEN_UNDERSCORE_OPEN_2_EM,
+    OPEN_UNDERSCORE_OPEN_2_STRONG,
+    OPEN_UNDERSCORE_BOTH_0_EM,
+    OPEN_UNDERSCORE_BOTH_0_STRONG,
+    OPEN_UNDERSCORE_BOTH_1_EM,
+    OPEN_UNDERSCORE_BOTH_1_STRONG,
+    OPEN_UNDERSCORE_BOTH_2_EM,
+    OPEN_UNDERSCORE_BOTH_2_STRONG,
     LAST_TOKEN_WHITESPACE,
     LAST_TOKEN_PUNCTUATION,
+    LAST_TOKEN_OTHER,
     STRIKETHROUGH_OPEN,
     STRIKETHROUGH_CLOSE,
     LATEX_SPAN_START,
@@ -26,20 +49,41 @@ typedef enum {
     UNCLOSED_SPAN,
     NONBLANK_LINK_TEXT,
     TAG,
-    IN_LINK_TEXT
+    IN_LINK_TEXT,
+    LAST_TOKEN_BOUNDARY,
+    LITERAL_DELIMITER,
+    PREPARE_INLINE,
+    BARE_URI_AUTOLINK,
+    BARE_EMAIL_AUTOLINK,
+    PARENT_ROOT,
+    PARENT_STAR_OPEN_0,
+    PARENT_STAR_OPEN_1,
+    PARENT_STAR_OPEN_2,
+    PARENT_STAR_BOTH_0,
+    PARENT_STAR_BOTH_1,
+    PARENT_STAR_BOTH_2,
+    PARENT_UNDERSCORE_OPEN_0,
+    PARENT_UNDERSCORE_OPEN_1,
+    PARENT_UNDERSCORE_OPEN_2,
+    PARENT_UNDERSCORE_BOTH_0,
+    PARENT_UNDERSCORE_BOTH_1,
+    PARENT_UNDERSCORE_BOTH_2,
+    PARENT_EM,
+    PARENT_STRONG,
+    BARE_AUTOLINKS_ENABLED,
+    CLOSE_STAR_EM,
+    CLOSE_STAR_STRONG,
+    CLOSE_UNDERSCORE_EM,
+    CLOSE_UNDERSCORE_STRONG,
+    RAW_STAR,
+    RAW_UNDERSCORE,
+    IMAGE_TEXT_START,
+    IMAGE_TEXT_END,
 } TokenType;
-
-// State bitflags used with `Scanner.state`
-
-// Opening run lengths modulo three, kept independently for each delimiter.
-static const uint8_t STATE_EMPHASIS_DELIMITER_MOD_3 = 0x3;
-static const uint8_t STATE_UNDERSCORE_DELIMITER_MOD_3 = 0x18;
 
 static bool rule_of_three_forbids(unsigned opening, unsigned closing) {
     return (opening + closing) % 3 == 0 && (opening % 3 != 0 || closing % 3 != 0);
 }
-// Current delimiter run is opening
-static const uint8_t STATE_EMPHASIS_DELIMITER_IS_OPEN = 0x1 << 2;
 
 // Convenience function to emit the error token. This is done to stop invalid
 // parse branches. Specifically:
@@ -59,44 +103,87 @@ static bool error(TSLexer *lexer) {
 }
 
 typedef struct {
-    // Parser state flags
-    uint8_t state;
     uint8_t code_span_delimiter_length;
     uint8_t latex_span_delimiter_length;
     uint8_t strikethrough_delimiter_length;
-    // The number of characters remaining in the currrent emphasis delimiter
-    // run.
-    uint8_t num_emphasis_delimiters_left;
-
+    uint16_t impossible_openers;
+    uint16_t unmatched_root_openers;
+    uint8_t previous_flank;
+    uint8_t parent_context;
+    uint32_t image_text_depth;
+    bool prepared;
+    int32_t pending_delimiter;
+    uint32_t pending_count;
+    uint8_t pending_modulo;
+    bool pending_can_open;
+    bool pending_can_close;
+    bool pending_opening_phase;
+    InlineTokenPreparation preparation;
 } Scanner;
 
-// Write the whole state of a Scanner to a byte buffer
 static unsigned serialize(Scanner *s, char *buffer) {
     unsigned size = 0;
-    buffer[size++] = (char)s->state;
     buffer[size++] = (char)s->code_span_delimiter_length;
     buffer[size++] = (char)s->latex_span_delimiter_length;
     buffer[size++] = (char)s->strikethrough_delimiter_length;
-    buffer[size++] = (char)s->num_emphasis_delimiters_left;
+    for (unsigned shift = 0; shift < 16; shift += 8) buffer[size++] = (char)((uint32_t)s->impossible_openers >> shift);
+    buffer[size++] = (char)s->previous_flank;
+    buffer[size++] = (char)s->parent_context;
+    for (unsigned shift = 0; shift < 32; shift += 8) buffer[size++] = (char)((uint32_t)s->image_text_depth >> shift);
+    buffer[size++] = (char)s->prepared;
+    for (unsigned shift = 0; shift < 32; shift += 8) buffer[size++] = (char)((uint32_t)s->pending_delimiter >> shift);
+    for (unsigned shift = 0; shift < 32; shift += 8) buffer[size++] = (char)((uint32_t)s->pending_count >> shift);
+    buffer[size++] = (char)s->pending_modulo;
+    buffer[size++] = (char)s->pending_can_open;
+    buffer[size++] = (char)s->pending_can_close;
+    buffer[size++] = (char)s->pending_opening_phase;
+    buffer[size++] = (char)s->preparation.role;
+    buffer[size++] = (char)s->preparation.kind;
+    for (unsigned shift = 0; shift < 32; shift += 8) buffer[size++] = (char)((uint32_t)s->preparation.delimiter >> shift);
+    for (unsigned shift = 0; shift < 32; shift += 8) buffer[size++] = (char)((uint32_t)s->preparation.length >> shift);
+    buffer[size++] = (char)s->preparation.original_can_open;
+    buffer[size++] = (char)s->preparation.original_can_close;
+    buffer[size++] = (char)s->preparation.original_modulo;
+    for (unsigned shift = 0; shift < 32; shift += 8) buffer[size++] = (char)((uint32_t)s->preparation.next_remaining >> shift);
+    buffer[size++] = (char)s->preparation.next_opening_phase;
+    buffer[size++] = (char)s->preparation.ending_flank;
+    buffer[size++] = (char)s->preparation.ending_boundary;
+    buffer[size++] = (char)s->unmatched_root_openers;
+    buffer[size++] = (char)(s->unmatched_root_openers >> 8);
     return size;
 }
 
-// Read the whole state of a Scanner from a byte buffer
-// `serizalize` and `deserialize` should be fully symmetric.
 static void deserialize(Scanner *s, const char *buffer, unsigned length) {
-    s->state = 0;
-    s->code_span_delimiter_length = 0;
-    s->latex_span_delimiter_length = 0;
-    s->strikethrough_delimiter_length = 0;
-    s->num_emphasis_delimiters_left = 0;
-    if (length > 0) {
-        size_t size = 0;
-        s->state = (uint8_t)buffer[size++];
-        s->code_span_delimiter_length = (uint8_t)buffer[size++];
-        s->latex_span_delimiter_length = (uint8_t)buffer[size++];
-        s->strikethrough_delimiter_length = (uint8_t)buffer[size++];
-        s->num_emphasis_delimiters_left = (uint8_t)buffer[size++];
-    }
+    *s = (Scanner){.previous_flank = 1};
+    if (length != 46) return;
+    unsigned size = 0;
+    s->code_span_delimiter_length = (uint8_t)(uint8_t)buffer[size++];
+    s->latex_span_delimiter_length = (uint8_t)(uint8_t)buffer[size++];
+    s->strikethrough_delimiter_length = (uint8_t)(uint8_t)buffer[size++];
+    for (unsigned shift = 0; shift < 16; shift += 8) s->impossible_openers |= (uint16_t)((uint32_t)(uint8_t)buffer[size++] << shift);
+    s->previous_flank = (uint8_t)(uint8_t)buffer[size++];
+    s->parent_context = (uint8_t)(uint8_t)buffer[size++];
+    for (unsigned shift = 0; shift < 32; shift += 8) s->image_text_depth |= (uint32_t)((uint32_t)(uint8_t)buffer[size++] << shift);
+    s->prepared = (bool)(uint8_t)buffer[size++];
+    for (unsigned shift = 0; shift < 32; shift += 8) s->pending_delimiter |= (int32_t)((uint32_t)(uint8_t)buffer[size++] << shift);
+    for (unsigned shift = 0; shift < 32; shift += 8) s->pending_count |= (uint32_t)((uint32_t)(uint8_t)buffer[size++] << shift);
+    s->pending_modulo = (uint8_t)(uint8_t)buffer[size++];
+    s->pending_can_open = (bool)(uint8_t)buffer[size++];
+    s->pending_can_close = (bool)(uint8_t)buffer[size++];
+    s->pending_opening_phase = (bool)(uint8_t)buffer[size++];
+    s->preparation.role = (InlineTokenRole)(uint8_t)buffer[size++];
+    s->preparation.kind = (BareAutolinkKind)(uint8_t)buffer[size++];
+    for (unsigned shift = 0; shift < 32; shift += 8) s->preparation.delimiter |= (int32_t)((uint32_t)(uint8_t)buffer[size++] << shift);
+    for (unsigned shift = 0; shift < 32; shift += 8) s->preparation.length |= (uint32_t)((uint32_t)(uint8_t)buffer[size++] << shift);
+    s->preparation.original_can_open = (bool)(uint8_t)buffer[size++];
+    s->preparation.original_can_close = (bool)(uint8_t)buffer[size++];
+    s->preparation.original_modulo = (uint8_t)(uint8_t)buffer[size++];
+    for (unsigned shift = 0; shift < 32; shift += 8) s->preparation.next_remaining |= (uint32_t)((uint32_t)(uint8_t)buffer[size++] << shift);
+    s->preparation.next_opening_phase = (bool)(uint8_t)buffer[size++];
+    s->preparation.ending_flank = (uint8_t)(uint8_t)buffer[size++];
+    s->preparation.ending_boundary = (bool)(uint8_t)buffer[size++];
+    s->unmatched_root_openers = (uint16_t)(uint8_t)buffer[size++];
+    s->unmatched_root_openers |= (uint16_t)((uint16_t)(uint8_t)buffer[size++] << 8);
 }
 
 static bool parse_leaf_delimiter(TSLexer *lexer, uint8_t *delimiter_length,
@@ -265,75 +352,6 @@ static bool next_delimiter_run_can_close(TSLexer *lexer, int32_t delimiter,
     return false;
 }
 
-static bool parse_star(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
-    lexer->advance(lexer, false);
-    // If `num_emphasis_delimiters_left` is not zero then we already decided
-    // that this should be part of an emphasis delimiter run, so interpret it as
-    // such.
-    if (s->num_emphasis_delimiters_left > 0) {
-        // The `STATE_EMPHASIS_DELIMITER_IS_OPEN` state flag tells us wether it
-        // should be open or close.
-        if ((s->state & STATE_EMPHASIS_DELIMITER_IS_OPEN) &&
-            valid_symbols[EMPHASIS_OPEN_STAR]) {
-            lexer->result_symbol = EMPHASIS_OPEN_STAR;
-            s->num_emphasis_delimiters_left--;
-            return true;
-        }
-        if (valid_symbols[EMPHASIS_CLOSE_STAR]) {
-            lexer->result_symbol = EMPHASIS_CLOSE_STAR;
-            s->num_emphasis_delimiters_left--;
-            return true;
-        }
-    }
-    lexer->mark_end(lexer);
-    // Otherwise count the number of stars
-    uint8_t star_count = 1;
-    while (lexer->lookahead == '*') {
-        star_count++;
-        lexer->advance(lexer, false);
-    }
-    bool line_end = lexer->lookahead == '\n' || lexer->lookahead == '\r' ||
-                    lexer->eof(lexer);
-    if (valid_symbols[EMPHASIS_OPEN_STAR] ||
-        valid_symbols[EMPHASIS_CLOSE_STAR]) {
-        // The desicion made for the first star also counts for all the
-        // following stars in the delimiter run. Rembemer how many there are.
-        s->num_emphasis_delimiters_left = star_count - 1;
-        // Look ahead to the next symbol (after the last star) to find out if it
-        // is whitespace punctuation or other.
-        bool next_symbol_whitespace =
-            line_end || is_unicode_whitespace(lexer->lookahead);
-        bool next_symbol_punctuation = is_unicode_punctuation(lexer->lookahead);
-        // Information about the last token is in valid_symbols. See grammar.js
-        // for these tokens for how this is done.
-        bool can_close = valid_symbols[EMPHASIS_CLOSE_STAR] && !valid_symbols[LAST_TOKEN_WHITESPACE] && (!valid_symbols[LAST_TOKEN_PUNCTUATION] || next_symbol_punctuation || next_symbol_whitespace);
-        bool can_open = valid_symbols[EMPHASIS_OPEN_STAR] && !next_symbol_whitespace && (!next_symbol_punctuation || valid_symbols[LAST_TOKEN_PUNCTUATION] || valid_symbols[LAST_TOKEN_WHITESPACE]);
-        unsigned opening_modulo = (s->state & STATE_EMPHASIS_DELIMITER_MOD_3) >> 0;
-        if (can_close && !(can_open && rule_of_three_forbids(opening_modulo, star_count) &&
-            next_delimiter_run_can_close(lexer, '*', star_count, false))) {
-            // Closing delimiters take precedence
-            s->state &= ~STATE_EMPHASIS_DELIMITER_IS_OPEN;
-            lexer->result_symbol = EMPHASIS_CLOSE_STAR;
-            return true;
-        }
-        if (can_open) {
-            s->state |= STATE_EMPHASIS_DELIMITER_IS_OPEN;
-            s->state = (s->state & ~STATE_EMPHASIS_DELIMITER_MOD_3) | ((star_count % 3) << 0);
-            lexer->result_symbol = EMPHASIS_OPEN_STAR;
-            return true;
-        }
-    }
-    // Invalid runs are literal as a whole. Returning false lets the internal
-    // lexer consume one delimiter and retry the suffix with invented flanks.
-    if (valid_symbols[UNCLOSED_SPAN]) {
-        s->num_emphasis_delimiters_left = 0;
-        lexer->mark_end(lexer);
-        lexer->result_symbol = UNCLOSED_SPAN;
-        return true;
-    }
-    return false;
-}
-
 // GFM accepts matching runs of one or two tildes. Emit each complete
 // run as one delimiter; sharing emphasis's partial-run state can pair
 // unrelated tildes or turn one strike into nested strikes.
@@ -345,14 +363,14 @@ static bool parse_tilde(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
     } while (lexer->lookahead == '~');
     lexer->mark_end(lexer);
     if (length > 2) {
-        if (!valid_symbols[UNCLOSED_SPAN]) return false;
-        lexer->result_symbol = UNCLOSED_SPAN;
+        if (!valid_symbols[LITERAL_DELIMITER]) return false;
+        lexer->result_symbol = LITERAL_DELIMITER;
         return true;
     }
     bool next_whitespace = lexer->eof(lexer) || is_unicode_whitespace(lexer->lookahead);
     bool next_punctuation = is_unicode_punctuation(lexer->lookahead);
-    bool previous_whitespace = valid_symbols[LAST_TOKEN_WHITESPACE];
-    bool previous_punctuation = valid_symbols[LAST_TOKEN_PUNCTUATION];
+    bool previous_whitespace = s->previous_flank == 1;
+    bool previous_punctuation = s->previous_flank >= 2;
     if (valid_symbols[STRIKETHROUGH_CLOSE] && (s->strikethrough_delimiter_length & (1 << length)) &&
         !previous_whitespace && (!previous_punctuation || next_punctuation || next_whitespace)) {
         s->strikethrough_delimiter_length &= ~(1 << length);
@@ -366,114 +384,159 @@ static bool parse_tilde(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
         lexer->result_symbol = STRIKETHROUGH_OPEN;
         return true;
     }
-    if (valid_symbols[UNCLOSED_SPAN]) {
-        lexer->result_symbol = UNCLOSED_SPAN;
+    if (valid_symbols[LITERAL_DELIMITER]) {
+        lexer->result_symbol = LITERAL_DELIMITER;
         return true;
     }
     return false;
 }
 
-static bool parse_underscore(Scanner *s, TSLexer *lexer,
-                             const bool *valid_symbols) {
-    lexer->advance(lexer, false);
-    // If `num_emphasis_delimiters_left` is not zero then we already decided
-    // that this should be part of an emphasis delimiter run, so interpret it as
-    // such.
-    if (s->num_emphasis_delimiters_left > 0) {
-        // The `STATE_EMPHASIS_DELIMITER_IS_OPEN` state flag tells us wether it
-        // should be open or close.
-        if ((s->state & STATE_EMPHASIS_DELIMITER_IS_OPEN) &&
-            valid_symbols[EMPHASIS_OPEN_UNDERSCORE]) {
-            lexer->result_symbol = EMPHASIS_OPEN_UNDERSCORE;
-            s->num_emphasis_delimiters_left--;
-            return true;
-        }
-        if (valid_symbols[EMPHASIS_CLOSE_UNDERSCORE]) {
-            lexer->result_symbol = EMPHASIS_CLOSE_UNDERSCORE;
-            s->num_emphasis_delimiters_left--;
-            return true;
-        }
+
+static void capture_parent(Scanner *s, const bool *valid_symbols) {
+    for (unsigned token = PARENT_STAR_OPEN_0; token <= PARENT_UNDERSCORE_BOTH_2; token++) {
+        if (!valid_symbols[token]) continue;
+        unsigned unit = valid_symbols[PARENT_STRONG] ? 2 : valid_symbols[PARENT_EM] ? 1 : s->parent_context ? (s->parent_context - 1) % 2 + 1 : 1;
+        s->parent_context = (uint8_t)((token - PARENT_STAR_OPEN_0) * 2 + unit);
+        return;
     }
-    lexer->mark_end(lexer);
-    // Otherwise count the number of stars
-    uint8_t underscore_count = 1;
-    while (lexer->lookahead == '_') {
-        underscore_count++;
-        lexer->advance(lexer, false);
-    }
-    bool line_end = lexer->lookahead == '\n' || lexer->lookahead == '\r' ||
-                    lexer->eof(lexer);
-    if (valid_symbols[EMPHASIS_OPEN_UNDERSCORE] ||
-        valid_symbols[EMPHASIS_CLOSE_UNDERSCORE]) {
-        // The desicion made for the first underscore also counts for all the
-        // following underscores in the delimiter run. Rembemer how many there are.
-        s->num_emphasis_delimiters_left = underscore_count - 1;
-        // Look ahead to the next symbol (after the last underscore) to find out if it
-        // is whitespace punctuation or other.
-        bool next_symbol_whitespace =
-            line_end || is_unicode_whitespace(lexer->lookahead);
-        bool next_symbol_punctuation = is_unicode_punctuation(lexer->lookahead);
-        // Information about the last token is in valid_symbols. See grammar.js
-        // for these tokens for how this is done.
-        bool can_close = valid_symbols[EMPHASIS_CLOSE_UNDERSCORE] && !valid_symbols[LAST_TOKEN_WHITESPACE] && (!valid_symbols[LAST_TOKEN_PUNCTUATION] || next_symbol_punctuation || next_symbol_whitespace) && (next_symbol_whitespace || next_symbol_punctuation);
-        bool can_open = valid_symbols[EMPHASIS_OPEN_UNDERSCORE] && !next_symbol_whitespace && (!next_symbol_punctuation || valid_symbols[LAST_TOKEN_PUNCTUATION] || valid_symbols[LAST_TOKEN_WHITESPACE]) && (valid_symbols[LAST_TOKEN_WHITESPACE] || valid_symbols[LAST_TOKEN_PUNCTUATION]);
-        unsigned opening_modulo = (s->state & STATE_UNDERSCORE_DELIMITER_MOD_3) >> 3;
-        if (can_close && !(can_open && rule_of_three_forbids(opening_modulo, underscore_count) &&
-            next_delimiter_run_can_close(lexer, '_', underscore_count, false))) {
-            // Closing delimiters take precedence
-            s->state &= ~STATE_EMPHASIS_DELIMITER_IS_OPEN;
-            lexer->result_symbol = EMPHASIS_CLOSE_UNDERSCORE;
-            return true;
-        }
-        if (can_open) {
-            s->state |= STATE_EMPHASIS_DELIMITER_IS_OPEN;
-            s->state = (s->state & ~STATE_UNDERSCORE_DELIMITER_MOD_3) | ((underscore_count % 3) << 3);
-            lexer->result_symbol = EMPHASIS_OPEN_UNDERSCORE;
-            return true;
-        }
-    }
-    // Invalid runs are literal as a whole. Returning false lets the internal
-    // lexer consume one delimiter and retry the suffix with invented flanks.
-    if (valid_symbols[UNCLOSED_SPAN]) {
-        s->num_emphasis_delimiters_left = 0;
-        lexer->mark_end(lexer);
-        lexer->result_symbol = UNCLOSED_SPAN;
-        return true;
-    }
-    return false;
+    if (valid_symbols[PARENT_ROOT]) s->parent_context = 0;
+}
+
+static bool image_has_closer(TSLexer *lexer) {
+    EmphasisLookahead input = {.lexer = lexer};
+    input.characters = emphasis_grow(NULL, &input.capacity, 1, sizeof(int32_t));
+    input.characters[0] = '[';
+    input.length = 1;
+    bool nonblank;
+    size_t end = emphasis_bracket_end(&input, 0, &nonblank);
+    free(input.characters);
+    return end != 0;
 }
 
 static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
-    // A normal tree-sitter rule decided that the current branch is invalid and
-    // now "requests" an error to stop the branch
-    if (valid_symbols[TRIGGER_ERROR]) {
-        return error(lexer);
+    if (valid_symbols[TRIGGER_ERROR]) return error(lexer);
+    const unsigned ghosts[] = {LAST_TOKEN_OTHER, LAST_TOKEN_WHITESPACE, LAST_TOKEN_PUNCTUATION, LAST_TOKEN_BOUNDARY};
+    for (uint8_t flank = 0; flank < 4; flank++) {
+        if (valid_symbols[ghosts[flank]] && (s->previous_flank != flank || s->prepared)) {
+            s->previous_flank = flank;
+            s->prepared = false;
+            lexer->result_symbol = ghosts[flank];
+            return true;
+        }
     }
-
+    if (valid_symbols[IMAGE_TEXT_END] && s->image_text_depth) {
+        s->image_text_depth--;
+        s->prepared = false;
+        lexer->result_symbol = IMAGE_TEXT_END;
+        return true;
+    }
+    if (valid_symbols[IMAGE_TEXT_START] && lexer->lookahead != ']') {
+        if (lexer->eof(lexer)) return false;
+        lexer->mark_end(lexer);
+        bool valid = image_has_closer(lexer);
+        if (valid) {
+            if (s->image_text_depth == UINT32_MAX) abort();
+            s->image_text_depth++;
+            s->prepared = false;
+            lexer->result_symbol = IMAGE_TEXT_START;
+            return true;
+        }
+        if (valid_symbols[PREPARE_INLINE]) {
+            capture_parent(s, valid_symbols);
+            s->prepared = false;
+            s->preparation = (InlineTokenPreparation){0};
+            lexer->result_symbol = PREPARE_INLINE;
+            return true;
+        }
+        return false;
+    }
+    int32_t first = lexer->lookahead;
+    // Ordinary internal tokens need no preparation. A NONE probe can return
+    // false safely for these candidates because their fallback is internal
+    // text, not another external leaf token such as a code-span delimiter.
+    // Prepared tokens stay at the same source position until commitment;
+    // real flank ghosts invalidate rejected plans after internal tokens.
+    // Do not use get_column as a position key: it rescans a long source line.
+    bool candidate = first == '*' || first == '_' ||
+        (valid_symbols[BARE_AUTOLINKS_ENABLED] &&
+         (bare_autolink_alnum(first) || first == '.' || first == '-' || first == '+'));
+    if (valid_symbols[PREPARE_INLINE] && !lexer->eof(lexer) && candidate && !s->prepared) {
+        capture_parent(s, valid_symbols);
+        lexer->mark_end(lexer);
+        unsigned frame = s->parent_context ? s->parent_context - 1 : 0;
+        InlineTokenOptions options = {
+            .prev_whitespace = s->previous_flank == 1,
+            .prev_punctuation = s->previous_flank >= 2,
+            .left_boundary = s->previous_flank == 1 || s->previous_flank == 3,
+            .bare_autolinks = valid_symbols[BARE_AUTOLINKS_ENABLED] && !valid_symbols[IN_LINK_TEXT],
+            .parent_delimiter = s->parent_context ? (frame / 12 ? '_' : '*') : 0,
+            .parent_modulo = frame % 6 / 2,
+            .parent_can_close = frame % 12 >= 6,
+            .parent_unit = s->parent_context ? frame % 2 + 1 : 0,
+            .in_link_text = s->image_text_depth || valid_symbols[IN_LINK_TEXT],
+            .pending_active = s->pending_count != 0,
+            .pending_delimiter = s->pending_delimiter,
+            .pending_count = s->pending_count,
+            .pending_modulo = s->pending_modulo,
+            .pending_can_open = s->pending_can_open,
+            .pending_can_close = s->pending_can_close,
+            .pending_opening_phase = s->pending_opening_phase,
+            .impossible_openers = &s->impossible_openers,
+            .unmatched_root_openers = &s->unmatched_root_openers,
+        };
+        s->preparation = prepare_inline_token(lexer, options);
+        if (s->preparation.role == INLINE_TOKEN_NONE) return false;
+        s->prepared = true;
+        lexer->result_symbol = PREPARE_INLINE;
+        return true;
+    }
+    if (s->prepared && s->preparation.role != INLINE_TOKEN_NONE) {
+        InlineTokenPreparation *plan = &s->preparation;
+        unsigned token;
+        if (plan->role == INLINE_TOKEN_BARE) token = plan->kind == BARE_AUTOLINK_URI ? BARE_URI_AUTOLINK : BARE_EMAIL_AUTOLINK;
+        else if (plan->role == INLINE_TOKEN_RAW) token = plan->delimiter == '*' ? RAW_STAR : RAW_UNDERSCORE;
+        else if (plan->role == INLINE_TOKEN_CLOSE) token = (plan->delimiter == '*' ? CLOSE_STAR_EM : CLOSE_UNDERSCORE_EM) + (plan->length == 2);
+        else token = (plan->delimiter == '*' ? OPEN_STAR_OPEN_0_EM : OPEN_UNDERSCORE_OPEN_0_EM) + (plan->original_can_close ? 6 : 0) + plan->original_modulo * 2 + (plan->length == 2);
+        if (!valid_symbols[token]) return false;
+        for (uint32_t index = 0; index < plan->length; index++) {
+            if (lexer->eof(lexer)) return false;
+            lexer->advance(lexer, false);
+        }
+        lexer->mark_end(lexer);
+        lexer->result_symbol = token;
+        s->prepared = false;
+        s->previous_flank = plan->ending_boundary ? 3 : plan->ending_flank;
+        s->pending_delimiter = plan->delimiter;
+        s->pending_count = plan->next_remaining;
+        s->pending_can_open = plan->original_can_open;
+        s->pending_can_close = plan->original_can_close;
+        s->pending_modulo = plan->original_modulo;
+        s->pending_opening_phase = plan->next_opening_phase;
+        if (plan->role == INLINE_TOKEN_OPEN) {
+            unsigned frame = (plan->delimiter == '_' ? 6 : 0) + (plan->original_can_close ? 3 : 0) + plan->original_modulo;
+            s->parent_context = (uint8_t)(frame * 2 + plan->length);
+        }
+        return true;
+    }
+    s->prepared = false;
     if (valid_symbols[NONBLANK_LINK_TEXT] && lexer->lookahead == '[') {
         lexer->advance(lexer, false);
         lexer->mark_end(lexer);
-        while (!lexer->eof(lexer) && is_unicode_whitespace(lexer->lookahead)) {
-            lexer->advance(lexer, false);
-        }
+        while (!lexer->eof(lexer) && is_unicode_whitespace(lexer->lookahead)) lexer->advance(lexer, false);
         if (!lexer->eof(lexer) && lexer->lookahead != ']') {
             lexer->result_symbol = NONBLANK_LINK_TEXT;
             return true;
         }
         return false;
     }
-
-    // Decide which tokens to consider based on the first non-whitespace
-    // character
     switch (lexer->lookahead) {
         case '#': {
-            if (!valid_symbols[TAG] || !valid_symbols[LAST_TOKEN_WHITESPACE]) return false;
+            if (!valid_symbols[TAG] || s->previous_flank != 1) return false;
             lexer->advance(lexer, false);
             bool non_numeric = false;
             while (!lexer->eof(lexer)) {
                 int32_t c = lexer->lookahead;
-                bool letter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-                    c == '_' || c == '-' || c == '/';
+                bool letter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '-' || c == '/';
                 if (!letter && !(c >= '0' && c <= '9')) break;
                 non_numeric |= letter;
                 lexer->advance(lexer, false);
@@ -482,21 +545,20 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
             lexer->result_symbol = TAG;
             return true;
         }
-        case '`':
-            // A backtick could mark the beginning or ending of a code span or a
-            // fenced code block.
-            return parse_backtick(s, lexer, valid_symbols);
-        case '$':
-            return parse_dollar(s, lexer, valid_symbols);
-        case '*':
-            // A star could either mark the beginning or ending of emphasis, a
-            // list item or thematic break. This code is similar to the code for
-            // '_' and '+'.
-            return parse_star(s, lexer, valid_symbols);
-        case '_':
-            return parse_underscore(s, lexer, valid_symbols);
-        case '~':
-            return parse_tilde(s, lexer, valid_symbols);
+        case '`': return parse_backtick(s, lexer, valid_symbols);
+        case '$': return parse_dollar(s, lexer, valid_symbols);
+        case '~': return parse_tilde(s, lexer, valid_symbols);
+        case '*': case '_': {
+            int32_t delimiter = lexer->lookahead;
+            unsigned token = delimiter == '*' ? RAW_STAR : RAW_UNDERSCORE;
+            if (!valid_symbols[token]) return false;
+            do { lexer->advance(lexer, false); } while (lexer->lookahead == delimiter);
+            lexer->mark_end(lexer);
+            lexer->result_symbol = token;
+            s->pending_count = 0;
+            s->previous_flank = 3;
+            return true;
+        }
     }
     return false;
 }

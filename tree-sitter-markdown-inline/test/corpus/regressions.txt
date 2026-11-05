@@ -19,10 +19,18 @@ _1_ _hello1_ _123_456_ __2__
 --------------------------------------------------------------------------------
 
 (inline
-  (emphasis (emphasis_delimiter) (emphasis_delimiter))
-  (emphasis (emphasis_delimiter) (emphasis_delimiter))
-  (emphasis (emphasis_delimiter) (emphasis_delimiter))
-  (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter)))
+  (emphasis
+    (emphasis_delimiter)
+    (emphasis_delimiter))
+  (emphasis
+    (emphasis_delimiter)
+    (emphasis_delimiter))
+  (emphasis
+    (emphasis_delimiter)
+    (emphasis_delimiter))
+  (strong_emphasis
+    (emphasis_delimiter)
+    (emphasis_delimiter)))
 
 ================================================================================
 Consecutive images (#186)
@@ -77,10 +85,18 @@ Independent bold text ending in punctuation (#209)
 --------------------------------------------------------------------------------
 
 (inline
-  (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter))
-  (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter))
-  (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter))
-  (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter)))
+  (strong_emphasis
+    (emphasis_delimiter)
+    (emphasis_delimiter))
+  (strong_emphasis
+    (emphasis_delimiter)
+    (emphasis_delimiter))
+  (strong_emphasis
+    (emphasis_delimiter)
+    (emphasis_delimiter))
+  (strong_emphasis
+    (emphasis_delimiter)
+    (emphasis_delimiter)))
 
 ================================================================================
 Dollar signs in link labels and URLs (#206)
@@ -309,4 +325,10 @@ Rule of three has no arbitrary content-length cutoff
 
 --------------------------------------------------------------------------------
 
-(inline (emphasis (emphasis_delimiter) (strong_emphasis (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter) (emphasis_delimiter)) (emphasis_delimiter)))
+(inline
+  (emphasis
+    (emphasis_delimiter)
+    (strong_emphasis
+      (emphasis_delimiter)
+      (emphasis_delimiter))
+    (emphasis_delimiter)))

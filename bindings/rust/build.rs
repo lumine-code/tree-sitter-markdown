@@ -28,7 +28,17 @@ fn main() {
 
     c_config.compile("tree-sitter-markdown");
 
-    println!("cargo:rerun-if-changed={}", inline_dir.join("unicode.h").display());
+    for header in [
+        "unicode.h",
+        "emphasis.h",
+        "autolink.h",
+        "inline-preparation.h",
+    ] {
+        println!(
+            "cargo:rerun-if-changed={}",
+            inline_dir.join(header).display()
+        );
+    }
 
     println!("cargo:rustc-check-cfg=cfg(with_highlights_query)");
     if !"tree-sitter-markdown/queries/highlights.scm".is_empty()

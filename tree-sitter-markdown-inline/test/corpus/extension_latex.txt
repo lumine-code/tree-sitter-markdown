@@ -29,10 +29,13 @@ LaTeX and link clashes
 $$This should prevent [this from parsing$$ the link](https://google.com)
 
 -------------------------------------------------------------------------------
+
 (inline
   (latex_block
     (latex_span_delimiter)
-    (latex_span_delimiter)))
+    (latex_span_delimiter))
+  (bare_uri_autolink))
+
 ================================================================================
 LaTeX inside markup
 ================================================================================

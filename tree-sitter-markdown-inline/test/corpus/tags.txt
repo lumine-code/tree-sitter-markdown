@@ -26,7 +26,9 @@ https://neovim.io#docs https://example.com/#/settings#privacy prefix#tag (#tag)
 
 --------------------------------------------------------------------------------
 
-(inline)
+(inline
+  (bare_uri_autolink)
+  (bare_uri_autolink))
 
 ================================================================================
 Tags remain available after whitespace and newlines

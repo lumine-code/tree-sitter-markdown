@@ -5,6 +5,16 @@
     "fields": {}
   },
   {
+    "type": "bare_email_autolink",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "bare_uri_autolink",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "code_span",
     "named": true,
     "fields": {},
@@ -44,6 +54,14 @@
       "types": [
         {
           "type": "backslash_escape",
+          "named": true
+        },
+        {
+          "type": "bare_email_autolink",
+          "named": true
+        },
+        {
+          "type": "bare_uri_autolink",
           "named": true
         },
         {
@@ -186,6 +204,14 @@
           "named": true
         },
         {
+          "type": "bare_email_autolink",
+          "named": true
+        },
+        {
+          "type": "bare_uri_autolink",
+          "named": true
+        },
+        {
           "type": "code_span",
           "named": true
         },
@@ -263,6 +289,14 @@
       "types": [
         {
           "type": "backslash_escape",
+          "named": true
+        },
+        {
+          "type": "bare_email_autolink",
+          "named": true
+        },
+        {
+          "type": "bare_uri_autolink",
           "named": true
         },
         {
@@ -433,6 +467,14 @@
           "named": true
         },
         {
+          "type": "bare_email_autolink",
+          "named": true
+        },
+        {
+          "type": "bare_uri_autolink",
+          "named": true
+        },
+        {
           "type": "code_span",
           "named": true
         },
@@ -534,6 +576,14 @@
           "named": true
         },
         {
+          "type": "bare_email_autolink",
+          "named": true
+        },
+        {
+          "type": "bare_uri_autolink",
+          "named": true
+        },
+        {
           "type": "code_span",
           "named": true
         },
@@ -614,6 +664,14 @@
       "types": [
         {
           "type": "backslash_escape",
+          "named": true
+        },
+        {
+          "type": "bare_email_autolink",
+          "named": true
+        },
+        {
+          "type": "bare_uri_autolink",
           "named": true
         },
         {

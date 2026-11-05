@@ -9,13 +9,15 @@ const common = require('../common/common');
 // Levels used for dynmic precedence. Ideally
 // n * PRECEDENCE_LEVEL_EMPHASIS > PRECEDENCE_LEVEL_LINK for any n, so maybe the
 // maginuted of these values should be increased in the future
-const PRECEDENCE_LEVEL_EMPHASIS = 1;
 const PRECEDENCE_LEVEL_LINK = 10;
 const PRECEDENCE_LEVEL_HTML = 100;
 
 // Punctuation characters as specified in
 // https://github.github.com/gfm/#ascii-punctuation-character
 const PUNCTUATION_CHARACTERS_REGEX = '!-/:-@\\[-`\\{-~';
+const ASCII_PUNCTUATION = Array.from({ length: 94 }, (_, index) =>
+  String.fromCharCode(index + 33),
+).filter((character) => !/[a-zA-Z0-9]/.test(character));
 
 // !!!
 // Notice the call to `add_inline_rules` which generates some additional rules related to parsing
@@ -37,16 +39,15 @@ module.exports = grammar(
       $._code_span_start,
       $._code_span_close,
 
-      // Opening and closing delimiters for emphasis.
-      $._emphasis_open_star,
-      $._emphasis_open_underscore,
-      $._emphasis_close_star,
-      $._emphasis_close_underscore,
+      // Whole-run flanking and modulo are retained for every marker.
+      ...emphasis_tokens($),
 
       // For emphasis we need to tell the parser if the last character was a whitespace (or the
-      // beginning of a line) or a punctuation. These tokens never actually get emitted.
+      // beginning of a line) or punctuation. Zero-width tokens retain this
+      // context when an internal token or an incremental subtree is consumed.
       $._last_token_whitespace,
       $._last_token_punctuation,
+      $._last_token_other,
 
       $._strikethrough_open,
       $._strikethrough_close,
@@ -62,20 +63,30 @@ module.exports = grammar(
       $._nonblank_link_text,
       $._tag,
       $._in_link_text,
+      $._last_token_boundary,
+      $._literal_delimiter,
+      $._prepare_inline,
+      $._bare_uri_autolink,
+      $._bare_email_autolink,
+      ...emphasis_parent_tokens($),
+      $._bare_autolinks_enabled,
+      $._close_star_em,
+      $._close_star_strong,
+      $._close_underscore_em,
+      $._close_underscore_strong,
+      $._raw_star,
+      $._raw_underscore,
+      $._image_text_start,
+      $._image_text_end,
     ],
     precedences: ($) => [
-      // [$._strong_emphasis_star, $._inline_element_no_star],
-      [$._strong_emphasis_star_no_link, $._inline_element_no_star_no_link],
-      // [$._strong_emphasis_underscore, $._inline_element_no_underscore],
-      [
-        $._strong_emphasis_underscore_no_link,
-        $._inline_element_no_underscore_no_link,
-      ],
       [$.hard_line_break, $._whitespace],
       [$.hard_line_break, $._text_base],
+      [$.hard_line_break, $._text_inline_base],
     ],
     // More conflicts are defined in `add_inline_rules`
     conflicts: ($) => [
+      [$._image_description_non_empty, $._inline_element],
       [$._open_bracket, $._link_text_non_empty],
 
       [$._closing_tag, $._text_base],
@@ -84,17 +95,24 @@ module.exports = grammar(
       [$._processing_instruction, $._text_base],
       [$._declaration, $._text_base],
       [$._cdata_section, $._text_base],
+      [$._closing_tag, $._text_inline_base],
+      [$._open_tag, $._text_inline_base],
+      [$._html_comment, $._text_inline_base],
+      [$._processing_instruction, $._text_inline_base],
+      [$._declaration, $._text_inline_base],
+      [$._cdata_section, $._text_inline_base],
 
       [$._link_text_non_empty, $._inline_element],
-      [$._link_text_non_empty, $._inline_element_no_star],
-      [$._link_text_non_empty, $._inline_element_no_underscore],
       [$._link_text_non_empty, $._inline_element_no_tilde],
       [$._link_text, $._inline_element],
-      [$._link_text, $._inline_element_no_star],
-      [$._link_text, $._inline_element_no_underscore],
       [$._link_text, $._inline_element_no_tilde],
 
       [$._image_description, $._image_description_non_empty, $._text_base],
+      [
+        $._image_description,
+        $._image_description_non_empty,
+        $._text_inline_base,
+      ],
       // [$._image_description, $._image_description_non_empty, $._text_inline],
       // [$._image_description, $._image_description_non_empty, $._text_inline_no_star],
       // [$._image_description, $._image_description_non_empty, $._text_inline_no_underscore],
@@ -105,8 +123,6 @@ module.exports = grammar(
       [$._link_destination_parenthesis, $.link_title],
 
       [$.wiki_link, $._inline_element],
-      [$.wiki_link, $._inline_element_no_star],
-      [$.wiki_link, $._inline_element_no_underscore],
       [$.wiki_link, $._inline_element_no_tilde],
     ],
     extras: ($) => [],
@@ -115,6 +131,28 @@ module.exports = grammar(
       inline: ($) => seq(optional($._last_token_whitespace), $._inline),
 
       ...common.rules,
+      bare_uri_autolink: ($) => $._bare_uri_autolink,
+      bare_email_autolink: ($) => $._bare_email_autolink,
+      backslash_escape: ($) =>
+        choice(
+          seq(
+            token(seq('\\', choice('*', '_', '~', '('))),
+            optional($._last_token_boundary),
+          ),
+          seq(
+            token(
+              seq(
+                '\\',
+                choice(
+                  ...ASCII_PUNCTUATION.filter(
+                    (character) => !'*_~('.includes(character),
+                  ),
+                ),
+              ),
+            ),
+            optional($._last_token_punctuation),
+          ),
+        ),
       _open_bracket: ($) => choice('[', alias($._nonblank_link_text, '[')),
       link_label: ($) =>
         seq(
@@ -182,46 +220,58 @@ module.exports = grammar(
             $._link_text_non_empty,
             seq(
               $._open_bracket,
+              optional($._last_token_punctuation),
               optional(
                 alias(
                   repeat1(
-                    choice(
-                      $._whitespace,
-                      $._unicode_whitespace,
-                      $._form_feed,
-                      $._soft_line_break,
+                    seq(
+                      optional($._prepare_inline),
+                      choice(
+                        $._whitespace,
+                        $._unicode_whitespace,
+                        $._form_feed,
+                        $._soft_line_break,
+                      ),
                     ),
                   ),
                   $.link_text,
                 ),
               ),
+              optional($._prepare_inline),
               ']',
+              optional($._last_token_punctuation),
             ),
           ),
         ),
       _link_text_non_empty: ($) =>
-        seq(
-          alias($._nonblank_link_text, '['),
-          alias($._inline_no_link, $.link_text),
-          ']',
+        prec.right(
+          seq(
+            alias($._nonblank_link_text, '['),
+            optional($._last_token_punctuation),
+            alias($._inline_no_link, $.link_text),
+            optional($._prepare_inline),
+            ']',
+            optional($._last_token_punctuation),
+          ),
         ),
       shortcut_link: ($) =>
         prec.dynamic(PRECEDENCE_LEVEL_LINK, $._link_text_non_empty),
       full_reference_link: ($) =>
         prec.dynamic(
           2 * PRECEDENCE_LEVEL_LINK,
-          seq($._link_text, $.link_label),
+          seq($._link_text, optional($._prepare_inline), $.link_label),
         ),
       collapsed_reference_link: ($) =>
         prec.dynamic(
           PRECEDENCE_LEVEL_LINK,
-          seq($._link_text, $._open_bracket, ']'),
+          seq($._link_text, optional($._prepare_inline), $._open_bracket, ']'),
         ),
       inline_link: ($) =>
         prec.dynamic(
           2 * PRECEDENCE_LEVEL_HTML,
           seq(
             $._link_text,
+            optional($._prepare_inline),
             '(',
             repeat(choice($._whitespace, $._soft_line_break)),
             optional(
@@ -250,11 +300,21 @@ module.exports = grammar(
           2 * PRECEDENCE_LEVEL_LINK,
           seq(
             $._open_bracket,
+            optional($._last_token_punctuation),
             $._open_bracket,
+            optional($._last_token_punctuation),
             alias($._wiki_link_destination, $.link_destination),
-            optional(seq('|', alias($._wiki_link_text, $.link_text))),
+            optional(
+              seq(
+                '|',
+                optional($._last_token_punctuation),
+                alias($._wiki_link_text, $.link_text),
+              ),
+            ),
             ']',
+            optional($._last_token_punctuation),
             ']',
+            optional($._last_token_punctuation),
           ),
         ),
 
@@ -264,7 +324,7 @@ module.exports = grammar(
             $._word,
             $._unicode_punctuation,
             $._unicode_whitespace,
-            common.punctuation_without($, ['[', ']', '|']),
+            punctuation_without($, ['[', ']', '|']),
             $._whitespace,
           ),
         ),
@@ -275,7 +335,7 @@ module.exports = grammar(
             $._word,
             $._unicode_punctuation,
             $._unicode_whitespace,
-            common.punctuation_without($, ['[', ']']),
+            punctuation_without($, ['[', ']']),
             $._whitespace,
           ),
         ),
@@ -295,6 +355,7 @@ module.exports = grammar(
           2 * PRECEDENCE_LEVEL_HTML,
           seq(
             $._image_description,
+            optional($._prepare_inline),
             '(',
             repeat(choice($._whitespace, $._soft_line_break)),
             optional(
@@ -322,27 +383,50 @@ module.exports = grammar(
       _image_full_reference_link: ($) =>
         prec.dynamic(
           PRECEDENCE_LEVEL_LINK,
-          seq($._image_description, $.link_label),
+          seq($._image_description, optional($._prepare_inline), $.link_label),
         ),
       _image_collapsed_reference_link: ($) =>
         prec.dynamic(
           PRECEDENCE_LEVEL_LINK,
-          seq($._image_description, $._open_bracket, ']'),
+          seq(
+            $._image_description,
+            optional($._prepare_inline),
+            $._open_bracket,
+            ']',
+          ),
         ),
       _image_description: ($) =>
         prec.dynamic(
           3 * PRECEDENCE_LEVEL_LINK,
           choice(
             $._image_description_non_empty,
-            seq('!', $._open_bracket, prec(1, ']')),
+            seq(
+              '!',
+              optional($._last_token_punctuation),
+              optional($._prepare_inline),
+              $._open_bracket,
+              optional($._last_token_punctuation),
+              optional($._prepare_inline),
+              prec(1, ']'),
+              optional($._last_token_punctuation),
+            ),
           ),
         ),
       _image_description_non_empty: ($) =>
-        seq(
-          '!',
-          $._open_bracket,
-          alias($._inline, $.image_description),
-          prec(1, ']'),
+        prec.right(
+          seq(
+            '!',
+            optional($._last_token_punctuation),
+            optional($._prepare_inline),
+            $._open_bracket,
+            optional($._last_token_punctuation),
+            $._image_text_start,
+            alias($._inline, $.image_description),
+            optional($._prepare_inline),
+            prec(1, ']'),
+            optional($._last_token_punctuation),
+            $._image_text_end,
+          ),
         ),
 
       // Autolinks. Uri autolinks actually accept protocolls of arbitrary length which does not
@@ -387,8 +471,8 @@ module.exports = grammar(
                   $._word,
                   $._whitespace,
                   $._soft_line_break,
-                  common.punctuation_without($, ['-', '>']),
-                  seq('-', common.punctuation_without($, ['>'])),
+                  punctuation_without($, ['-', '>']),
+                  seq('-', punctuation_without($, ['>'])),
                 ),
                 repeat(
                   prec.right(
@@ -396,14 +480,14 @@ module.exports = grammar(
                       $._word,
                       $._whitespace,
                       $._soft_line_break,
-                      common.punctuation_without($, ['-']),
+                      punctuation_without($, ['-']),
                       seq(
                         '-',
                         choice(
                           $._word,
                           $._whitespace,
                           $._soft_line_break,
-                          common.punctuation_without($, ['-']),
+                          punctuation_without($, ['-']),
                         ),
                       ),
                     ),
@@ -425,7 +509,7 @@ module.exports = grammar(
                   $._word,
                   $._whitespace,
                   $._soft_line_break,
-                  common.punctuation_without($, []),
+                  punctuation_without($, []),
                 ),
               ),
             ),
@@ -444,7 +528,7 @@ module.exports = grammar(
                   $._word,
                   $._whitespace,
                   $._soft_line_break,
-                  common.punctuation_without($, ['>']),
+                  punctuation_without($, ['>']),
                 ),
               ),
             ),
@@ -462,7 +546,7 @@ module.exports = grammar(
                   $._word,
                   $._whitespace,
                   $._soft_line_break,
-                  common.punctuation_without($, []),
+                  punctuation_without($, []),
                 ),
               ),
             ),
@@ -474,9 +558,11 @@ module.exports = grammar(
       //
       // https://github.github.com/gfm/#hard-line-breaks
       hard_line_break: ($) =>
-        seq(choice('\\', $._whitespace_ge_2), $._soft_line_break),
-      _text: ($) =>
-        choice($._word, common.punctuation_without($, []), $._whitespace),
+        seq(
+          token(seq(choice('\\', /\t| [ \t]+/), /\r?\n/)),
+          optional($._last_token_whitespace),
+        ),
+      _text: ($) => choice($._word, punctuation_without($, []), $._whitespace),
 
       // Whitespace is divided into single whitespaces and multiple whitespaces as wee need this
       // information for hard line breaks.
@@ -499,34 +585,62 @@ module.exports = grammar(
       // conflicts work.
       _word: ($) => choice($._word_no_digit, $._digits),
       _word_no_digit: ($) =>
-        new RegExp(
-          '[^' +
-            PUNCTUATION_CHARACTERS_REGEX +
-            '\\p{P}\\p{Zs}\\t\\n\\r\\f0-9]+(_+[^' +
-            PUNCTUATION_CHARACTERS_REGEX +
-            '\\p{P}\\p{Zs}\\t\\n\\r\\f0-9]+)*',
-          'u',
+        seq(
+          new RegExp(
+            '[^' +
+              PUNCTUATION_CHARACTERS_REGEX +
+              '\\p{P}\\p{Zs}\\t\\n\\r\\f0-9]+(_+[^' +
+              PUNCTUATION_CHARACTERS_REGEX +
+              '\\p{P}\\p{Zs}\\t\\n\\r\\f0-9]+)*',
+            'u',
+          ),
+          optional($._last_token_other),
         ),
-      _digits: ($) => /[0-9]+(_+[0-9]+)*/,
+      _digits: ($) => seq(/[0-9]+(_+[0-9]+)*/, optional($._last_token_other)),
       _soft_line_break: ($) =>
         seq($._newline_token, optional($._last_token_whitespace)),
 
       _inline_base: ($) =>
         choice(
-          $.image,
+          seq($.image, optional($._last_token_punctuation)),
           $._soft_line_break,
           $.backslash_escape,
           $.hard_line_break,
-          $.uri_autolink,
-          $.email_autolink,
-          $.entity_reference,
-          $.numeric_character_reference,
-          common.EXTENSION_LATEX ? $.latex_block : choice(),
-          $.code_span,
-          alias($._html_tag, $.html_tag),
-          $._text_base,
+          seq($.uri_autolink, optional($._last_token_punctuation)),
+          seq($.email_autolink, optional($._last_token_punctuation)),
+          seq($.entity_reference, optional($._last_token_punctuation)),
+          seq(
+            $.numeric_character_reference,
+            optional($._last_token_punctuation),
+          ),
+          common.EXTENSION_LATEX
+            ? seq($.latex_block, optional($._last_token_punctuation))
+            : choice(),
+          seq($.code_span, optional($._last_token_punctuation)),
+          seq(
+            alias($._html_tag, $.html_tag),
+            optional($._last_token_punctuation),
+          ),
+          $._text_inline_base,
           common.EXTENSION_TAGS ? $.tag : choice(),
-          $._unclosed_span,
+          seq($._unclosed_span, optional($._last_token_punctuation)),
+          seq($._literal_delimiter, optional($._last_token_boundary)),
+          ...(common.EXTENSION_GFM
+            ? [$.bare_uri_autolink, $.bare_email_autolink]
+            : []),
+        ),
+      _text_inline_base: ($) =>
+        choice(
+          $._word,
+          $._unicode_punctuation,
+          $._unicode_whitespace,
+          $._form_feed,
+          $._whitespace,
+          punctuation_without($, ['[', ']', '*', '_']),
+          '<!--',
+          /<![A-Z]+/,
+          '<?',
+          '<![CDATA[',
         ),
       _text_base: ($) =>
         choice(
@@ -535,7 +649,7 @@ module.exports = grammar(
           $._unicode_whitespace,
           $._form_feed,
           $._whitespace,
-          common.punctuation_without($, ['[', ']']),
+          punctuation_without($, ['[', ']']),
           '<!--',
           /<![A-Z]+/,
           '<?',
@@ -544,8 +658,8 @@ module.exports = grammar(
       _text_inline_no_link: ($) =>
         choice(
           $._text_base,
-          $._emphasis_open_star,
-          $._emphasis_open_underscore,
+          $._literal_star,
+          $._literal_underscore,
           $._unclosed_span,
         ),
 
@@ -562,160 +676,209 @@ module.exports = grammar(
 // rules may not contain newlines, characters like '*' and '_', ... depending on the context.
 //
 // This is by far the most ugly part of this code and should be cleaned up.
+
+function emphasis_tokens($) {
+  return ['star', 'underscore'].flatMap((delimiter) =>
+    ['open', 'both'].flatMap((mode) =>
+      [0, 1, 2].flatMap((modulo) =>
+        ['em', 'strong'].map(
+          (unit) =>
+            $['_open_' + delimiter + '_' + mode + '_' + modulo + '_' + unit],
+        ),
+      ),
+    ),
+  );
+}
+
+function emphasis_parent_tokens($) {
+  return [
+    $._parent_root,
+    ...['star', 'underscore'].flatMap((delimiter) =>
+      ['open', 'both'].flatMap((mode) =>
+        [0, 1, 2].map(
+          (modulo) => $['_parent_' + delimiter + '_' + mode + '_' + modulo],
+        ),
+      ),
+    ),
+    $._parent_em,
+    $._parent_strong,
+  ];
+}
+
 function add_inline_rules(grammar) {
-  let conflicts = [];
-  for (let link of [true, false]) {
-    let suffix_link = link ? '' : '_no_link';
-    for (let delimiter of [false, 'star', 'underscore', 'tilde']) {
-      let suffix_delimiter = delimiter ? '_no_' + delimiter : '';
-      let suffix = suffix_delimiter + suffix_link;
-      grammar.rules['_inline_element' + suffix] = ($) => {
-        let elements = [
-          $._inline_base,
-          alias($['_emphasis_star' + suffix_link], $.emphasis),
-          alias($['_strong_emphasis_star' + suffix_link], $.strong_emphasis),
-          alias($['_emphasis_underscore' + suffix_link], $.emphasis),
-          alias(
-            $['_strong_emphasis_underscore' + suffix_link],
-            $.strong_emphasis,
+  const conflicts = [];
+  for (const delimiter of ['star', 'underscore']) {
+    grammar.rules['_literal_' + delimiter] = ($) => $['_raw_' + delimiter];
+  }
+  for (const link of [true, false]) {
+    const suffix = link ? '' : '_no_link';
+    const pairs = [];
+    const prefix = ($, context) => [
+      ...(context ? [optional($[context])] : []),
+      ...(link === true ? [] : [optional($._in_link_text)]),
+      ...(common.EXTENSION_GFM ? [optional($._bare_autolinks_enabled)] : []),
+      optional($._prepare_inline),
+    ];
+    const elements = ($, excluded) => {
+      const result = [
+        $._inline_base,
+        ...pairs.map((pair) => alias($[pair.name], $[pair.node])),
+      ];
+      if (excluded !== 'star') result.push($._literal_star);
+      if (excluded !== 'underscore') result.push($._literal_underscore);
+      if (common.EXTENSION_STRIKETHROUGH)
+        result.push(
+          seq(
+            alias($['_strikethrough' + suffix], $.strikethrough),
+            optional($._last_token_boundary),
           ),
-        ];
-        if (common.EXTENSION_STRIKETHROUGH) {
-          elements.push(
-            alias($['_strikethrough' + suffix_link], $.strikethrough),
-          );
-        }
-        if (delimiter !== 'star') {
-          elements.push($._emphasis_open_star);
-        }
-        if (delimiter !== 'underscore') {
-          elements.push($._emphasis_open_underscore);
-        }
-        if (delimiter !== 'tilde') {
-          elements.push($._strikethrough_open);
-        }
-        if (link) {
-          elements = elements.concat([
-            $.shortcut_link,
-            $.full_reference_link,
-            $.collapsed_reference_link,
-            $.inline_link,
-            // (common.EXTENSION_WIKI_LINK && $.wiki_link),
-            seq(
-              choice($._open_bracket, ']'),
-              optional($._last_token_punctuation),
+        );
+      if (excluded !== 'tilde') result.push($._strikethrough_open);
+      if (link) {
+        result.push(
+          seq(
+            choice(
+              $.shortcut_link,
+              $.full_reference_link,
+              $.collapsed_reference_link,
+              $.inline_link,
             ),
-          ]);
-          if (common.EXTENSION_WIKI_LINK) {
-            elements.push($.wiki_link);
+            optional($._last_token_punctuation),
+          ),
+          seq(
+            choice($._open_bracket, ']'),
+            optional($._last_token_punctuation),
+          ),
+        );
+        if (common.EXTENSION_WIKI_LINK) result.push($.wiki_link);
+      }
+      return choice(...result);
+    };
+    for (const delimiter of ['star', 'underscore']) {
+      for (const mode of ['open', 'both']) {
+        for (const modulo of [0, 1, 2]) {
+          if (mode === 'both' && modulo === 0) continue;
+          for (const strong of [false, true]) {
+            const unit = strong ? 'strong' : 'em';
+            const name =
+              '_' + unit + '_' + delimiter + '_' + mode + '_' + modulo + suffix;
+            const body = '_body_' + delimiter + suffix;
+            const endpoint = '_content_no_' + delimiter + suffix;
+            const context = '_parent_' + delimiter + '_' + mode + '_' + modulo;
+            pairs.push({
+              name,
+              node: strong ? 'strong_emphasis' : 'emphasis',
+              delimiter,
+              strong,
+            });
+            grammar.rules[name] = ($) => {
+              const opening =
+                modulo === 0
+                  ? choice(
+                      $['_open_' + delimiter + '_open_0_' + unit],
+                      $['_open_' + delimiter + '_both_0_' + unit],
+                    )
+                  : $[
+                      '_open_' +
+                        delimiter +
+                        '_' +
+                        mode +
+                        '_' +
+                        modulo +
+                        '_' +
+                        unit
+                    ];
+              const open = alias(opening, $.emphasis_delimiter);
+              const close = alias(
+                $['_close_' + delimiter + '_' + unit],
+                $.emphasis_delimiter,
+              );
+              return prec.dynamic(
+                strong ? 3 : 1,
+                seq(
+                  open,
+                  optional($[context]),
+                  $[body],
+                  optional($[context]),
+                  optional(strong ? $._parent_strong : $._parent_em),
+                  optional($._prepare_inline),
+                  close,
+                ),
+              );
+            };
+            grammar.rules[endpoint] = ($) => elements($, delimiter, false);
+            grammar.rules[body] = ($) => {
+              const middle = seq(
+                ...prefix($, null),
+                $['_literal_' + delimiter],
+              );
+              const item = seq(...prefix($, null), $[endpoint]);
+              return seq(item, repeat(seq(repeat(middle), item)));
+            };
+            conflicts.push([body]);
+            for (const element of [endpoint]) {
+              if (link)
+                conflicts.push(
+                  ['_link_text', element],
+                  ['_link_text_non_empty', element],
+                  ['wiki_link', element],
+                );
+            }
           }
         }
-        return link
-          ? choice(...elements)
-          : seq(optional($._in_link_text), choice(...elements));
-      };
-      grammar.rules['_inline' + suffix] = ($) =>
-        repeat1($['_inline_element' + suffix]);
-      if (delimiter !== 'star') {
-        conflicts.push([
-          '_emphasis_star' + suffix_link,
-          '_inline_element' + suffix_delimiter + suffix_link,
-        ]);
-        conflicts.push([
-          '_emphasis_star' + suffix_link,
-          '_strong_emphasis_star' + suffix_link,
-          '_inline_element' + suffix_delimiter + suffix_link,
-        ]);
-      }
-      if (delimiter == 'star' || delimiter == 'underscore') {
-        conflicts.push([
-          '_strong_emphasis_' + delimiter + suffix_link,
-          '_inline_element_no_' + delimiter,
-        ]);
-      }
-      if (delimiter !== 'underscore') {
-        conflicts.push([
-          '_emphasis_underscore' + suffix_link,
-          '_inline_element' + suffix_delimiter + suffix_link,
-        ]);
-        conflicts.push([
-          '_emphasis_underscore' + suffix_link,
-          '_strong_emphasis_underscore' + suffix_link,
-          '_inline_element' + suffix_delimiter + suffix_link,
-        ]);
-      }
-      if (delimiter !== 'tilde') {
-        conflicts.push([
-          '_strikethrough' + suffix_link,
-          '_inline_element' + suffix_delimiter + suffix_link,
-        ]);
       }
     }
-
+    for (const excluded of ['', 'tilde']) {
+      const variant = excluded ? '_no_' + excluded : '';
+      const name = '_inline_element' + variant + suffix;
+      grammar.rules[name] = ($) =>
+        seq(
+          ...prefix($, excluded ? null : '_parent_root'),
+          elements($, excluded, false),
+        );
+      grammar.rules['_inline' + variant + suffix] = ($) => repeat1($[name]);
+    }
     if (common.EXTENSION_STRIKETHROUGH) {
-      grammar.rules['_strikethrough' + suffix_link] = ($) =>
-        prec.dynamic(
-          PRECEDENCE_LEVEL_EMPHASIS,
+      grammar.rules['_strikethrough' + suffix] = ($) =>
+        prec.right(
+          1,
           seq(
             alias($._strikethrough_open, $.emphasis_delimiter),
-            optional($._last_token_punctuation),
-            $['_inline' + '_no_tilde' + suffix_link],
+            optional($._last_token_boundary),
+            $['_inline_no_tilde' + suffix],
+            optional($._prepare_inline),
             alias($._strikethrough_close, $.emphasis_delimiter),
           ),
         );
     }
-    grammar.rules['_emphasis_star' + suffix_link] = ($) =>
-      prec.dynamic(
-        PRECEDENCE_LEVEL_EMPHASIS,
-        seq(
-          alias($._emphasis_open_star, $.emphasis_delimiter),
-          optional($._last_token_punctuation),
-          $['_inline' + '_no_star' + suffix_link],
-          alias($._emphasis_close_star, $.emphasis_delimiter),
-        ),
-      );
-    grammar.rules['_strong_emphasis_star' + suffix_link] = ($) =>
-      prec.dynamic(
-        2 * PRECEDENCE_LEVEL_EMPHASIS,
-        seq(
-          alias($._emphasis_open_star, $.emphasis_delimiter),
-          $['_emphasis_star' + suffix_link],
-          alias($._emphasis_close_star, $.emphasis_delimiter),
-        ),
-      );
-    grammar.rules['_emphasis_underscore' + suffix_link] = ($) =>
-      prec.dynamic(
-        PRECEDENCE_LEVEL_EMPHASIS,
-        seq(
-          alias($._emphasis_open_underscore, $.emphasis_delimiter),
-          optional($._last_token_punctuation),
-          $['_inline' + '_no_underscore' + suffix_link],
-          alias($._emphasis_close_underscore, $.emphasis_delimiter),
-        ),
-      );
-    grammar.rules['_strong_emphasis_underscore' + suffix_link] = ($) =>
-      prec.dynamic(
-        2 * PRECEDENCE_LEVEL_EMPHASIS,
-        seq(
-          alias($._emphasis_open_underscore, $.emphasis_delimiter),
-          $['_emphasis_underscore' + suffix_link],
-          alias($._emphasis_close_underscore, $.emphasis_delimiter),
-        ),
-      );
   }
-
-  let old = grammar.conflicts;
-  grammar.conflicts = ($) => {
-    let cs = old($);
-    for (let conflict of conflicts) {
-      let c = [];
-      for (let rule of conflict) {
-        c.push($[rule]);
-      }
-      cs.push(c);
-    }
-    return cs;
-  };
-
+  const oldConflicts = grammar.conflicts;
+  const unique = [
+    ...new Map(
+      conflicts.map((names) => [names.toSorted().join(','), names]),
+    ).values(),
+  ];
+  grammar.conflicts = ($) => [
+    ...oldConflicts($),
+    ...unique.map((names) => names.map((name) => $[name])),
+  ];
   return grammar;
+}
+
+function punctuation_without($, excluded) {
+  const characters = ASCII_PUNCTUATION.filter(
+    (character) => !excluded.includes(character),
+  );
+  const boundaries = characters.filter((character) =>
+    '*_~('.includes(character),
+  );
+  const other = characters.filter((character) => !'*_~('.includes(character));
+  return choice(
+    ...(other.length
+      ? [seq(choice(...other), optional($._last_token_punctuation))]
+      : []),
+    ...(boundaries.length
+      ? [seq(choice(...boundaries), optional($._last_token_boundary))]
+      : []),
+  );
 }

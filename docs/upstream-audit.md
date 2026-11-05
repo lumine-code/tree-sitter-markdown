@@ -2,7 +2,9 @@
 
 Audit date: 2026-11-03. Baseline: [tree-sitter-grammars/tree-sitter-markdown v0.5.4, revision 41ff24a6c775492c543b09228aeb98d1cd2b3a0f](https://github.com/tree-sitter-grammars/tree-sitter-markdown/tree/41ff24a6c775492c543b09228aeb98d1cd2b3a0f). The inventory contains all 65 open issues and 9 open pull requests captured on that date. Dispositions describe this fork's work; they do not imply that upstream accepted a change or closed a report.
 
-This is an editor parser audit, not a claim of complete CommonMark or GitHub renderer equivalence. Block and inline parsing remain separate, reference-link resolution is approximate, and the inherited inline corpus contains explicitly skipped specification cases. A passing active suite does not establish that skipped cases pass. Optional dialect features are distinguished from GFM behavior.
+Follow-up reviewed on 2026-11-05: GFM emphasis/strong-emphasis matching and native extended-autolink parsing are implemented and checked against published examples, pinned reference output, exact source ranges and incremental parsing.
+
+This is an editor parser audit, not a claim of complete CommonMark or GitHub renderer equivalence. Block and inline parsing remain separate, and document-wide reference-link resolution is approximate. HTML output filtering and GitHub platform features are not parser syntax obligations. Optional metadata and math features extend formal GFM rather than establish a strict GFM-only dialect.
 
 ## Block parsing fixes
 
@@ -29,8 +31,11 @@ This is an editor parser audit, not a claim of complete CommonMark or GitHub ren
 
 The inline changes below have targeted native and WebAssembly regressions, including exact source ranges and comparisons of incremental parses with fresh parses.
 
+The selected emphasis rules cover Unicode flanking, original delimiter-run lengths, the rule of three, strong-emphasis grouping, nesting, overlap/nearest-opener choices and precedence around code, inline links, images and HTML. All 131 published GFM emphasis examples are compared with their semantic HTML trees. A separate fixture contains 1,121 reference cases, including a 432-case rule-of-three matrix, 288 Unicode cases, 48 long-run cases, precedence cases and 256 seeded combinations. Its pinned official cmark revision includes the delimiter-cache corrections while retaining the published GFM Unicode punctuation rules. Exact interval assertions and fresh-versus-incremental comparisons supplement these semantic checks; corpus tree shapes alone cannot distinguish every wrong delimiter pairing.
+
 | Issue | Disposition in this fork |
 | --- | --- |
+| [#8](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/8) | Emphasis and strong-emphasis matching now cover the selected GFM delimiter and precedence rules, including former limitations 400, 401, 406 and 421. All 131 published emphasis examples and the reference matrix are active semantic checks. Document-wide reference-link binding remains a separate limitation. |
 | [#276](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/276) | Intraword underscores next to digits remain literal, including `Φ_2` and `λ_4`. |
 | [#151](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/151) | Numeric tokens no longer consume closing underscore emphasis delimiters. |
 | [#186](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/186) | Consecutive images remain images instead of becoming links. |
@@ -43,6 +48,8 @@ The inline changes below have targeted native and WebAssembly regressions, inclu
 | [#10](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/10) | Angle-delimited image destinations take precedence over HTML. |
 | [#11](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/11) | Quoted HTML attributes can contain tag-like text without splitting the tag. |
 | [#7](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/7) | Code spans take precedence over autolinks in the reported case. |
+| [#171](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/171) | Implemented native GFM extended autolinks for bare URLs and email addresses, including boundary, trimming and emphasis-precedence behavior. The published extended-autolink examples are covered. |
+| [#164](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/164) | Bare URLs and email addresses expose dedicated `bare_uri_autolink` and `bare_email_autolink` nodes with their actual source ranges. |
 
 ## Bindings, builds and documentation
 
@@ -75,12 +82,11 @@ The inline changes below have targeted native and WebAssembly regressions, inclu
 
 | Issue | Disposition in this fork |
 | --- | --- |
-| [#8](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/8) | Partially addressed: Unicode flanking, invalid delimiter runs and several nested-emphasis cases are corrected. Four genuine limitations remain in examples 400, 401, 406 and 421; see PR #284 and the inline corpus's explicit skips. |
 | [#154](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/154) | General list text-object ranges and ownership of trailing block continuations remain unresolved. |
 | [#91](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/91) | General paragraph/list continuation ownership for folding remains unresolved; the targeted ATX/list-marker fixes do not settle this CST design question. |
 | [#251](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/251) | Reproduced the native traversal crash on Python runtime 0.26.0 at 15 KB. The `core` extra selects `>=0.25.2,<0.26`, and an import guard rejects exactly 0.26.0 before runtime loading. Runtime 0.25.2 passes 1 KB, 15 KB and 150 KB traversal checks. This mitigates an external runtime incompatibility rather than claiming a parser repair. |
 
-The four `:skip` records in [the inline failing corpus](../tree-sitter-markdown-inline/test/corpus/failing.txt) are confirmed limitations, not coverage counted as passing. Fourteen repaired examples moved into the active inline corpus. Example 538 was normalized to its inline paragraph because its inherited expectation incorrectly combined block and inline roots. Bare GFM autolinks are also still missing, as recorded below.
+The former skipped examples 400, 401, 406 and 421 now pass active semantic conformance checks. Fourteen earlier repaired examples also have active corpus coverage. Example 538 was normalized to its inline paragraph because its inherited expectation incorrectly combined block and inline roots. This closes the recorded emphasis and bare-autolink gaps; it does not establish full document-renderer equivalence. In particular, reference-shaped nodes still require document-wide definition lookup by a consumer, and that distinction can affect emphasis precedence around unresolved reference candidates.
 
 ## Feature requests not implemented in this pass
 
@@ -93,9 +99,7 @@ The four `:skip` records in [the inline failing corpus](../tree-sitter-markdown-
 | [#194](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/194) | Pandoc raw code-fence language attributes require a separate syntax/injection decision. |
 | [#188](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/188) | `==highlight==` is an additional dialect feature. |
 | [#183](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/183) | Pandoc single-tilde subscript conflicts with the selected GFM strikethrough dialect. |
-| [#171](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/171) | Bare GFM autolinks remain unsupported; angle-bracket autolinks are distinct syntax. |
 | [#170](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/170) | A Markdown-aware node wrapper and `walk()` API require a separate Rust API change. |
-| [#164](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/164) | Dedicated bare-URL nodes remain unimplemented, overlapping #171. |
 | [#146](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/146) | A published cross-parser benchmark is separate work; no comparative performance claim is made. |
 | [#137](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/137) | MDX parser design is outside this Markdown bug-fix pass. |
 | [#128](https://github.com/tree-sitter-grammars/tree-sitter-markdown/issues/128) | Language-labelled metadata delimiters such as `---toml` are a dialect enhancement. |
@@ -107,12 +111,12 @@ The four `:skip` records in [the inline failing corpus](../tree-sitter-markdown-
 
 These dispositions concern the reported behavior, not an assertion that a pull request was copied or merged. Overlapping proposals were evaluated together against the fork's grammar and regression tests.
 
-The independently written rule-of-three implementation was informed by [PR #284's reviewed revision 511cea7a5d0324661e2e92b2ad49085e363bfad8](https://github.com/tree-sitter-grammars/tree-sitter-markdown/commit/511cea7a5d0324661e2e92b2ad49085e363bfad8), by francobritannique (Ceri C). Its local lookahead also handles Unicode, escapes and unmatched backticks without a document-length cutoff.
+The earlier rule-of-three work was informed by [PR #284's reviewed revision 511cea7a5d0324661e2e92b2ad49085e363bfad8](https://github.com/tree-sitter-grammars/tree-sitter-markdown/commit/511cea7a5d0324661e2e92b2ad49085e363bfad8), by francobritannique (Ceri C). The current independently written implementation uses forward delimiter matching and explicit grammar tokens for opening, closing and literal runs. Original flanks and modulo survive partial consumption and incremental scanner serialization; forward analysis has no fixed document-length cutoff. Performance measurements are separate from the semantic conformance results recorded here.
 
 | Pull request | Disposition in this fork |
 | --- | --- |
 | [#285](https://github.com/tree-sitter-grammars/tree-sitter-markdown/pull/285) | Consecutive-image behavior addressed by removing ambiguous nested inline repetition. |
-| [#284](https://github.com/tree-sitter-grammars/tree-sitter-markdown/pull/284) | The next-relevant-run rule-of-three approach repairs examples 420, 424 and 438, with code-span/escape handling and no document-length cutoff. Incremental regressions and targeted delimiter-run performance probes pass. Nonlocal opener matching in example 421 remains unsupported; this is not complete GFM emphasis conformance. |
+| [#284](https://github.com/tree-sitter-grammars/tree-sitter-markdown/pull/284) | Rule-of-three behavior and the former example 421 limitation are addressed by the current delimiter planner, beyond the earlier next-run heuristic. Validation includes every published emphasis example, reference matrices, exact source intervals and incremental comparisons. This does not claim complete GitHub renderer equivalence. |
 | [#256](https://github.com/tree-sitter-grammars/tree-sitter-markdown/pull/256) | Empty-cell and delimiter-counting behavior addressed with the related table fixes. |
 | [#239](https://github.com/tree-sitter-grammars/tree-sitter-markdown/pull/239) | Named empty-cell behavior addressed with the related table fixes. |
 | [#238](https://github.com/tree-sitter-grammars/tree-sitter-markdown/pull/238) | Numeric underscores are internal to number tokens only when followed by further digits. |

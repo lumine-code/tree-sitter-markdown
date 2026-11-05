@@ -74,6 +74,12 @@ setup(
                 "tree-sitter-markdown/src",
                 "tree-sitter-markdown-inline/src",
             ],
+            depends=[
+                "tree-sitter-markdown-inline/src/unicode.h",
+                "tree-sitter-markdown-inline/src/emphasis.h",
+                "tree-sitter-markdown-inline/src/autolink.h",
+                "tree-sitter-markdown-inline/src/inline-preparation.h",
+            ],
             py_limited_api=not get_config_var("Py_GIL_DISABLED"),
         )
     ],

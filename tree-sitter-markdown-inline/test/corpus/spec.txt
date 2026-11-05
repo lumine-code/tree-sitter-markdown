@@ -877,8 +877,6 @@ Example 387 - https://github.github.com/gfm/#example-387
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -909,8 +907,6 @@ foo**bar**
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -922,8 +918,6 @@ __foo bar__
 
 (inline
   (strong_emphasis
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)
     (emphasis_delimiter)))
 
@@ -969,14 +963,14 @@ Example 396 - https://github.github.com/gfm/#example-396
 ================================================================================
 5__6__78
 
+--------------------------------------------------------------------------------
+
+(inline)
+
 ================================================================================
 Example 397 - https://github.github.com/gfm/#example-397
 ================================================================================
 пристаням__стремятся__
-
---------------------------------------------------------------------------------
-
-(inline)
 
 --------------------------------------------------------------------------------
 
@@ -992,13 +986,9 @@ __foo, __bar__, baz__
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1011,9 +1001,25 @@ foo-__(bar)__
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
+
+================================================================================
+Example 400 - https://github.github.com/gfm/#example-400
+================================================================================
+**foo bar **
+
+--------------------------------------------------------------------------------
+
+(inline)
+
+================================================================================
+Example 401 - https://github.github.com/gfm/#example-401
+================================================================================
+**(**foo)
+
+--------------------------------------------------------------------------------
+
+(inline)
 
 ================================================================================
 Example 402 - https://github.github.com/gfm/#example-402
@@ -1026,8 +1032,6 @@ Example 402 - https://github.github.com/gfm/#example-402
   (emphasis
     (emphasis_delimiter)
     (strong_emphasis
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
@@ -1043,14 +1047,12 @@ Example 403 - https://github.github.com/gfm/#example-403
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis
       (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis
       (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1063,11 +1065,9 @@ Example 404 - https://github.github.com/gfm/#example-404
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis
       (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1080,9 +1080,16 @@ Example 405 - https://github.github.com/gfm/#example-405
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
+
+================================================================================
+Example 406 - https://github.github.com/gfm/#example-406
+================================================================================
+__foo bar __
+
+--------------------------------------------------------------------------------
+
+(inline)
 
 ================================================================================
 Example 407 - https://github.github.com/gfm/#example-407
@@ -1104,8 +1111,6 @@ _(__foo__)_
   (emphasis
     (emphasis_delimiter)
     (strong_emphasis
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
@@ -1138,8 +1143,6 @@ __foo__bar__baz__
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1151,8 +1154,6 @@ __(bar)__.
 
 (inline
   (strong_emphasis
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)
     (emphasis_delimiter)))
 
@@ -1195,8 +1196,6 @@ _foo __bar__ baz_
   (emphasis
     (emphasis_delimiter)
     (strong_emphasis
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
@@ -1258,8 +1257,6 @@ Example 419 - https://github.github.com/gfm/#example-419
     (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
 
@@ -1275,9 +1272,19 @@ Example 420 - https://github.github.com/gfm/#example-420
     (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
+    (emphasis_delimiter)))
+
+================================================================================
+Example 421 - https://github.github.com/gfm/#example-421
+================================================================================
+*foo**bar*
+
+--------------------------------------------------------------------------------
+
+(inline
+  (emphasis
+    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1291,8 +1298,6 @@ Example 422 - https://github.github.com/gfm/#example-422
   (emphasis
     (emphasis_delimiter)
     (strong_emphasis
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
@@ -1309,8 +1314,6 @@ Example 423 - https://github.github.com/gfm/#example-423
     (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
 
@@ -1325,8 +1328,6 @@ Example 424 - https://github.github.com/gfm/#example-424
   (emphasis
     (emphasis_delimiter)
     (strong_emphasis
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
@@ -1343,8 +1344,6 @@ foo***bar***baz
     (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
 
@@ -1358,18 +1357,12 @@ foo******bar*********baz
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (strong_emphasis
-      (emphasis_delimiter)
       (emphasis_delimiter)
       (strong_emphasis
         (emphasis_delimiter)
-        (emphasis_delimiter)
-        (emphasis_delimiter)
         (emphasis_delimiter))
-      (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1384,11 +1377,9 @@ Example 427 - https://github.github.com/gfm/#example-427
     (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis
         (emphasis_delimiter)
         (emphasis_delimiter))
-      (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
 
@@ -1438,11 +1429,9 @@ Example 431 - https://github.github.com/gfm/#example-431
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (inline_link
       (link_text)
       (link_destination))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1456,8 +1445,6 @@ bar**
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1470,11 +1457,9 @@ __foo _bar_ baz__
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis
       (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1487,13 +1472,9 @@ __foo __bar__ baz__
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1506,13 +1487,9 @@ ____foo__ bar__
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1525,13 +1502,9 @@ Example 436 - https://github.github.com/gfm/#example-436
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1544,11 +1517,9 @@ Example 437 - https://github.github.com/gfm/#example-437
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis
       (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1561,11 +1532,9 @@ Example 438 - https://github.github.com/gfm/#example-438
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis
       (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1578,11 +1547,9 @@ Example 439 - https://github.github.com/gfm/#example-439
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis
       (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1595,11 +1562,9 @@ Example 440 - https://github.github.com/gfm/#example-440
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis
       (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1613,16 +1578,12 @@ bim* bop**
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis
       (emphasis_delimiter)
       (strong_emphasis
         (emphasis_delimiter)
-        (emphasis_delimiter)
-        (emphasis_delimiter)
         (emphasis_delimiter))
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1635,14 +1596,12 @@ Example 442 - https://github.github.com/gfm/#example-442
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (inline_link
       (link_text
         (emphasis
           (emphasis_delimiter)
           (emphasis_delimiter)))
       (link_destination))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1716,9 +1675,7 @@ foo **\***
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (backslash_escape)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1730,8 +1687,6 @@ foo **_**
 
 (inline
   (strong_emphasis
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)
     (emphasis_delimiter)))
 
@@ -1769,8 +1724,6 @@ Example 453 - https://github.github.com/gfm/#example-453
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1794,8 +1747,6 @@ Example 455 - https://github.github.com/gfm/#example-455
 
 (inline
   (strong_emphasis
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)
     (emphasis_delimiter)))
 
@@ -1864,9 +1815,7 @@ foo __\___
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (backslash_escape)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1878,8 +1827,6 @@ foo __*__
 
 (inline
   (strong_emphasis
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)
     (emphasis_delimiter)))
 
@@ -1917,8 +1864,6 @@ ___foo__
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1943,8 +1888,6 @@ __foo___
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -1968,8 +1911,6 @@ Example 469 - https://github.github.com/gfm/#example-469
 
 (inline
   (strong_emphasis
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)
     (emphasis_delimiter)))
 
@@ -1998,8 +1939,6 @@ __foo__
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -2027,13 +1966,9 @@ Example 473 - https://github.github.com/gfm/#example-473
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -2046,13 +1981,9 @@ ____foo____
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -2065,18 +1996,12 @@ Example 475 - https://github.github.com/gfm/#example-475
 (inline
   (strong_emphasis
     (emphasis_delimiter)
-    (emphasis_delimiter)
     (strong_emphasis
-      (emphasis_delimiter)
       (emphasis_delimiter)
       (strong_emphasis
         (emphasis_delimiter)
-        (emphasis_delimiter)
-        (emphasis_delimiter)
         (emphasis_delimiter))
-      (emphasis_delimiter)
       (emphasis_delimiter))
-    (emphasis_delimiter)
     (emphasis_delimiter)))
 
 ================================================================================
@@ -2090,8 +2015,6 @@ Example 476 - https://github.github.com/gfm/#example-476
   (emphasis
     (emphasis_delimiter)
     (strong_emphasis
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
@@ -2108,13 +2031,9 @@ _____foo_____
     (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
       (strong_emphasis
         (emphasis_delimiter)
-        (emphasis_delimiter)
-        (emphasis_delimiter)
         (emphasis_delimiter))
-      (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
 
@@ -2142,8 +2061,6 @@ Example 479 - https://github.github.com/gfm/#example-479
     (emphasis_delimiter)
     (strong_emphasis
       (emphasis_delimiter)
-      (emphasis_delimiter)
-      (emphasis_delimiter)
       (emphasis_delimiter))
     (emphasis_delimiter)))
 
@@ -2156,8 +2073,6 @@ Example 480 - https://github.github.com/gfm/#example-480
 
 (inline
   (strong_emphasis
-    (emphasis_delimiter)
-    (emphasis_delimiter)
     (emphasis_delimiter)
     (emphasis_delimiter)))
 
@@ -2698,8 +2613,6 @@ Example 524 - https://github.github.com/gfm/#example-524
         (emphasis_delimiter)
         (strong_emphasis
           (emphasis_delimiter)
-          (emphasis_delimiter)
-          (emphasis_delimiter)
           (emphasis_delimiter))
         (code_span
           (code_span_delimiter)
@@ -2881,8 +2794,6 @@ Example 538 - https://github.github.com/gfm/#example-538
       (emphasis
         (emphasis_delimiter)
         (strong_emphasis
-          (emphasis_delimiter)
-          (emphasis_delimiter)
           (emphasis_delimiter)
           (emphasis_delimiter))
         (code_span
@@ -3789,7 +3700,8 @@ Example 616 - https://github.github.com/gfm/#example-616
 
 --------------------------------------------------------------------------------
 
-(inline)
+(inline
+  (bare_uri_autolink))
 
 ================================================================================
 Example 617 - https://github.github.com/gfm/#example-617
@@ -3816,7 +3728,8 @@ http://example.com
 
 --------------------------------------------------------------------------------
 
-(inline)
+(inline
+  (bare_uri_autolink))
 
 ================================================================================
 Example 620 - https://github.github.com/gfm/#example-620
@@ -3825,7 +3738,8 @@ foo@bar.example.com
 
 --------------------------------------------------------------------------------
 
-(inline)
+(inline
+  (bare_email_autolink))
 
 ================================================================================
 Example 632 - https://github.github.com/gfm/#example-632

@@ -1,0 +1,250 @@
+{
+  "source": {
+    "url": "https://github.github.com/gfm/#autolinks-extension-",
+    "version": "0.29-gfm (2019-04-06)",
+    "retrieved": "2026-11-05",
+    "htmlSha256": "b153d814fdfc8624bb6da7449162c1cd707a637f7d1c1b636eb44b9cf63fa220",
+    "license": "CC-BY-SA-4.0",
+    "note": "The current published section includes mailto/xmpp protocol examples missing from the original 0.29.0.gfm.0 source tag."
+  },
+  "examples": [
+    {
+      "number": 622,
+      "markdown": "www.commonmark.org\n",
+      "html": "<p><a href=\"http://www.commonmark.org\">www.commonmark.org</a></p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "www.commonmark.org",
+          "destination": "http://www.commonmark.org"
+        }
+      ]
+    },
+    {
+      "number": 623,
+      "markdown": "Visit www.commonmark.org/help for more information.\n",
+      "html": "<p>Visit <a href=\"http://www.commonmark.org/help\">www.commonmark.org/help</a> for more information.</p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "www.commonmark.org/help",
+          "destination": "http://www.commonmark.org/help"
+        }
+      ]
+    },
+    {
+      "number": 624,
+      "markdown": "Visit www.commonmark.org.\n\nVisit www.commonmark.org/a.b.\n",
+      "html": "<p>Visit <a href=\"http://www.commonmark.org\">www.commonmark.org</a>.</p>\n<p>Visit <a href=\"http://www.commonmark.org/a.b\">www.commonmark.org/a.b</a>.</p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "www.commonmark.org",
+          "destination": "http://www.commonmark.org"
+        },
+        {
+          "kind": "uri",
+          "text": "www.commonmark.org/a.b",
+          "destination": "http://www.commonmark.org/a.b"
+        }
+      ]
+    },
+    {
+      "number": 625,
+      "markdown": "www.google.com/search?q=Markup+(business)\n\nwww.google.com/search?q=Markup+(business)))\n\n(www.google.com/search?q=Markup+(business))\n\n(www.google.com/search?q=Markup+(business)\n",
+      "html": "<p><a href=\"http://www.google.com/search?q=Markup+(business)\">www.google.com/search?q=Markup+(business)</a></p>\n<p><a href=\"http://www.google.com/search?q=Markup+(business)\">www.google.com/search?q=Markup+(business)</a>))</p>\n<p>(<a href=\"http://www.google.com/search?q=Markup+(business)\">www.google.com/search?q=Markup+(business)</a>)</p>\n<p>(<a href=\"http://www.google.com/search?q=Markup+(business)\">www.google.com/search?q=Markup+(business)</a></p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "www.google.com/search?q=Markup+(business)",
+          "destination": "http://www.google.com/search?q=Markup+(business)"
+        },
+        {
+          "kind": "uri",
+          "text": "www.google.com/search?q=Markup+(business)",
+          "destination": "http://www.google.com/search?q=Markup+(business)"
+        },
+        {
+          "kind": "uri",
+          "text": "www.google.com/search?q=Markup+(business)",
+          "destination": "http://www.google.com/search?q=Markup+(business)"
+        },
+        {
+          "kind": "uri",
+          "text": "www.google.com/search?q=Markup+(business)",
+          "destination": "http://www.google.com/search?q=Markup+(business)"
+        }
+      ]
+    },
+    {
+      "number": 626,
+      "markdown": "www.google.com/search?q=(business))+ok\n",
+      "html": "<p><a href=\"http://www.google.com/search?q=(business))+ok\">www.google.com/search?q=(business))+ok</a></p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "www.google.com/search?q=(business))+ok",
+          "destination": "http://www.google.com/search?q=(business))+ok"
+        }
+      ]
+    },
+    {
+      "number": 627,
+      "markdown": "www.google.com/search?q=commonmark&hl=en\n\nwww.google.com/search?q=commonmark&hl;\n",
+      "html": "<p><a href=\"http://www.google.com/search?q=commonmark&amp;hl=en\">www.google.com/search?q=commonmark&amp;hl=en</a></p>\n<p><a href=\"http://www.google.com/search?q=commonmark\">www.google.com/search?q=commonmark</a>&amp;hl;</p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "www.google.com/search?q=commonmark&hl=en",
+          "destination": "http://www.google.com/search?q=commonmark&hl=en"
+        },
+        {
+          "kind": "uri",
+          "text": "www.google.com/search?q=commonmark",
+          "destination": "http://www.google.com/search?q=commonmark"
+        }
+      ]
+    },
+    {
+      "number": 628,
+      "markdown": "www.commonmark.org/he<lp\n",
+      "html": "<p><a href=\"http://www.commonmark.org/he\">www.commonmark.org/he</a>&lt;lp</p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "www.commonmark.org/he",
+          "destination": "http://www.commonmark.org/he"
+        }
+      ]
+    },
+    {
+      "number": 629,
+      "markdown": "http://commonmark.org\n\n(Visit https://encrypted.google.com/search?q=Markup+(business))\n",
+      "html": "<p><a href=\"http://commonmark.org\">http://commonmark.org</a></p>\n<p>(Visit <a href=\"https://encrypted.google.com/search?q=Markup+(business)\">https://encrypted.google.com/search?q=Markup+(business)</a>)</p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "http://commonmark.org",
+          "destination": "http://commonmark.org"
+        },
+        {
+          "kind": "uri",
+          "text": "https://encrypted.google.com/search?q=Markup+(business)",
+          "destination": "https://encrypted.google.com/search?q=Markup+(business)"
+        }
+      ]
+    },
+    {
+      "number": 630,
+      "markdown": "foo@bar.baz\n",
+      "html": "<p><a href=\"mailto:foo@bar.baz\">foo@bar.baz</a></p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "foo@bar.baz",
+          "destination": "mailto:foo@bar.baz"
+        }
+      ]
+    },
+    {
+      "number": 631,
+      "markdown": "hello@mail+xyz.example isn't valid, but hello+xyz@mail.example is.\n",
+      "html": "<p>hello@mail+xyz.example isn't valid, but <a href=\"mailto:hello+xyz@mail.example\">hello+xyz@mail.example</a> is.</p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "hello+xyz@mail.example",
+          "destination": "mailto:hello+xyz@mail.example"
+        }
+      ]
+    },
+    {
+      "number": 632,
+      "markdown": "a.b-c_d@a.b\n\na.b-c_d@a.b.\n\na.b-c_d@a.b-\n\na.b-c_d@a.b_\n",
+      "html": "<p><a href=\"mailto:a.b-c_d@a.b\">a.b-c_d@a.b</a></p>\n<p><a href=\"mailto:a.b-c_d@a.b\">a.b-c_d@a.b</a>.</p>\n<p>a.b-c_d@a.b-</p>\n<p>a.b-c_d@a.b_</p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "a.b-c_d@a.b",
+          "destination": "mailto:a.b-c_d@a.b"
+        },
+        {
+          "kind": "email",
+          "text": "a.b-c_d@a.b",
+          "destination": "mailto:a.b-c_d@a.b"
+        }
+      ]
+    },
+    {
+      "number": 633,
+      "markdown": "mailto:foo@bar.baz\n\nmailto:a.b-c_d@a.b\n\nmailto:a.b-c_d@a.b.\n\nmailto:a.b-c_d@a.b/\n\nmailto:a.b-c_d@a.b-\n\nmailto:a.b-c_d@a.b_\n\nxmpp:foo@bar.baz\n\nxmpp:foo@bar.baz.\n",
+      "html": "<p><a href=\"mailto:foo@bar.baz\">mailto:foo@bar.baz</a></p>\n<p><a href=\"mailto:a.b-c_d@a.b\">mailto:a.b-c_d@a.b</a></p>\n<p><a href=\"mailto:a.b-c_d@a.b\">mailto:a.b-c_d@a.b</a>.</p>\n<p><a href=\"mailto:a.b-c_d@a.b\">mailto:a.b-c_d@a.b</a>/</p>\n<p>mailto:a.b-c_d@a.b-</p>\n<p>mailto:a.b-c_d@a.b_</p>\n<p><a href=\"xmpp:foo@bar.baz\">xmpp:foo@bar.baz</a></p>\n<p><a href=\"xmpp:foo@bar.baz\">xmpp:foo@bar.baz</a>.</p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "mailto:foo@bar.baz",
+          "destination": "mailto:foo@bar.baz"
+        },
+        {
+          "kind": "email",
+          "text": "mailto:a.b-c_d@a.b",
+          "destination": "mailto:a.b-c_d@a.b"
+        },
+        {
+          "kind": "email",
+          "text": "mailto:a.b-c_d@a.b",
+          "destination": "mailto:a.b-c_d@a.b"
+        },
+        {
+          "kind": "email",
+          "text": "mailto:a.b-c_d@a.b",
+          "destination": "mailto:a.b-c_d@a.b"
+        },
+        {
+          "kind": "email",
+          "text": "xmpp:foo@bar.baz",
+          "destination": "xmpp:foo@bar.baz"
+        },
+        {
+          "kind": "email",
+          "text": "xmpp:foo@bar.baz",
+          "destination": "xmpp:foo@bar.baz"
+        }
+      ]
+    },
+    {
+      "number": 634,
+      "markdown": "xmpp:foo@bar.baz/txt\n\nxmpp:foo@bar.baz/txt@bin\n\nxmpp:foo@bar.baz/txt@bin.com\n",
+      "html": "<p><a href=\"xmpp:foo@bar.baz/txt\">xmpp:foo@bar.baz/txt</a></p>\n<p><a href=\"xmpp:foo@bar.baz/txt@bin\">xmpp:foo@bar.baz/txt@bin</a></p>\n<p><a href=\"xmpp:foo@bar.baz/txt@bin.com\">xmpp:foo@bar.baz/txt@bin.com</a></p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "xmpp:foo@bar.baz/txt",
+          "destination": "xmpp:foo@bar.baz/txt"
+        },
+        {
+          "kind": "email",
+          "text": "xmpp:foo@bar.baz/txt@bin",
+          "destination": "xmpp:foo@bar.baz/txt@bin"
+        },
+        {
+          "kind": "email",
+          "text": "xmpp:foo@bar.baz/txt@bin.com",
+          "destination": "xmpp:foo@bar.baz/txt@bin.com"
+        }
+      ]
+    },
+    {
+      "number": 635,
+      "markdown": "xmpp:foo@bar.baz/txt/bin\n",
+      "html": "<p><a href=\"xmpp:foo@bar.baz/txt\">xmpp:foo@bar.baz/txt</a>/bin</p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "xmpp:foo@bar.baz/txt",
+          "destination": "xmpp:foo@bar.baz/txt"
+        }
+      ]
+    }
+  ]
+}

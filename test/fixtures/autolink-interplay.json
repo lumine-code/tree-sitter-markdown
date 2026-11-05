@@ -1,0 +1,134 @@
+{
+  "source": {
+    "repository": "https://github.com/github/cmark-gfm",
+    "revision": "b8eb2e00de094999f978e9cb02b1a78d810812d3",
+    "tag": "0.29.0.gfm.0",
+    "command": "cmark-gfm --to html --unsafe -e autolink",
+    "note": "Concrete emphasis/email precedence probes. These expectations retain the delimiter boundaries selected before email autolinking.",
+    "crossCheckedRevision": "27d942c8b0a62d192f616e5bf3578f4b6a89e180"
+  },
+  "examples": [
+    {
+      "markdown": "_foo@example.com_",
+      "html": "<p><em><a href=\"mailto:foo@example.com\">foo@example.com</a></em></p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "foo@example.com"
+        }
+      ],
+      "emphasis": ["_foo@example.com_"]
+    },
+    {
+      "markdown": "_foo@example.com",
+      "html": "<p><a href=\"mailto:_foo@example.com\">_foo@example.com</a></p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "_foo@example.com"
+        }
+      ],
+      "emphasis": []
+    },
+    {
+      "markdown": "foo@bar.com_",
+      "html": "<p>foo@bar.com_</p>\n",
+      "links": [],
+      "emphasis": []
+    },
+    {
+      "markdown": "_foo@bar.com_.xx",
+      "html": "<p><em><a href=\"mailto:foo@bar.com\">foo@bar.com</a></em>.xx</p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "foo@bar.com"
+        }
+      ],
+      "emphasis": ["_foo@bar.com_"]
+    },
+    {
+      "markdown": "foo@bar.com-.xx",
+      "html": "<p><a href=\"mailto:foo@bar.com-.xx\">foo@bar.com-.xx</a></p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "foo@bar.com-.xx"
+        }
+      ],
+      "emphasis": []
+    },
+    {
+      "markdown": "www.foo.ba_r.baz",
+      "html": "<p>www.foo.ba_r.baz</p>\n",
+      "links": [],
+      "emphasis": []
+    },
+    {
+      "markdown": "*foo@example.com*",
+      "html": "<p><em><a href=\"mailto:foo@example.com\">foo@example.com</a></em></p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "foo@example.com"
+        }
+      ],
+      "emphasis": ["*foo@example.com*"]
+    },
+    {
+      "markdown": "www.a.com/foo_bar_baz",
+      "html": "<p><a href=\"http://www.a.com/foo_bar_baz\">www.a.com/foo_bar_baz</a></p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "www.a.com/foo_bar_baz"
+        }
+      ],
+      "emphasis": []
+    },
+    {
+      "markdown": "a_b@example.com",
+      "html": "<p><a href=\"mailto:a_b@example.com\">a_b@example.com</a></p>\n",
+      "links": [
+        {
+          "kind": "email",
+          "text": "a_b@example.com"
+        }
+      ],
+      "emphasis": []
+    },
+    {
+      "markdown": "www.a.com/foo*bar*baz",
+      "html": "<p><a href=\"http://www.a.com/foo*bar*baz\">www.a.com/foo*bar*baz</a></p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "www.a.com/foo*bar*baz"
+        }
+      ],
+      "emphasis": []
+    },
+    {
+      "markdown": "*http://a.com/*foo*",
+      "html": "<p><em><a href=\"http://a.com/*foo\">http://a.com/*foo</a></em></p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "http://a.com/*foo"
+        }
+      ],
+      "emphasis": ["*http://a.com/*foo*"]
+    },
+    {
+      "markdown": "_http://a.com/a_b_c_",
+      "html": "<p><em><a href=\"http://a.com/a_b_c\">http://a.com/a_b_c</a></em></p>\n",
+      "links": [
+        {
+          "kind": "uri",
+          "text": "http://a.com/a_b_c"
+        }
+      ],
+      "emphasis": ["_http://a.com/a_b_c_"]
+    }
+  ]
+}

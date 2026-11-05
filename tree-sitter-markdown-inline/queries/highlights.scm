@@ -16,6 +16,8 @@
 [
   (link_destination)
   (uri_autolink)
+  (bare_uri_autolink)
+  (bare_email_autolink)
 ] @text.uri
 
 [
