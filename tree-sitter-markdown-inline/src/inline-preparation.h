@@ -204,6 +204,8 @@ typedef struct {
     bool pending_opening_phase;
     uint16_t *impossible_openers;
     uint16_t *unmatched_root_openers;
+    uint32_t *next_matched_star;
+    uint32_t star_ordinal;
 } InlineTokenOptions;
 
 typedef struct {
@@ -295,8 +297,10 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
         unsigned bit = (first == '_' ? 6 : 0) + (closes ? 3 : 0) + modulo;
         bool impossible = !options.in_link_text && options.impossible_openers != NULL &&
             (*options.impossible_openers & (1u << bit));
-        impossible |= !pending && !options.in_link_text && !options.parent_delimiter &&
+        impossible |= !pending && !options.in_link_text &&
             options.unmatched_root_openers != NULL && (*options.unmatched_root_openers & (1u << bit));
+        impossible |= !pending && !options.in_link_text && first == '*' &&
+            options.next_matched_star != NULL && options.star_ordinal < options.next_matched_star[bit];
         if (opens && !impossible) {
             InlinePreparationLexer virtual_lexer = inline_preparation_virtual(&input, remaining);
             matches = emphasis_opening_plan_in_context(&virtual_lexer.lexer, first,
@@ -305,7 +309,9 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
                 options.parent_delimiter, options.parent_modulo, options.parent_can_close,
                 options.parent_delimiter == '*' || options.parent_delimiter == '_' ? parent_unit : 0,
                 modulo, opening_phase, &leftmost_unit,
-                options.in_link_text || pending ? NULL : options.unmatched_root_openers);
+                options.in_link_text || pending ? NULL : options.unmatched_root_openers,
+                options.in_link_text || pending ? NULL : options.next_matched_star,
+                options.star_ordinal);
         }
         if (pending && first == '_' && options.bare_autolinks && matches == 0) {
             // Recomputing the remaining run's modulo in prepare_inline would

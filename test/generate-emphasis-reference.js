@@ -4,6 +4,7 @@
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const cacheSequences = require('./fixtures/emphasis-cache-sequences');
 
 const executable = process.argv[2];
 const sourceDirectory = process.argv[3];
@@ -162,6 +163,7 @@ for (const markdown of [
   '*a *b *c',
   '*a *b *c*',
   ...[1, 2, 3, 8].map((count) => '**a****b'.repeat(count)),
+  ...cacheSequences.flatMap(({ sources }) => sources),
 ])
   add(`cache ${JSON.stringify(markdown)}`, markdown);
 

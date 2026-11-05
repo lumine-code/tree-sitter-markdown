@@ -4335,6 +4335,96 @@
       "html": "<p><strong>a****b</strong>a<strong><strong>b**a</strong></strong>b<strong>a****b</strong>a<strong><strong>b**a</strong></strong>b<strong>a****b</strong>a****b</p>\n"
     },
     {
+      "name": "cache \"prefix **a****b **a****b **a****b **a****b **a****b **a****b **a****b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b **a****b **a****b **a****b **a****b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b **a<strong><strong>b **a</strong></strong>b **a<strong><strong>b **a</strong></strong>b **a<strong><strong>b **a</strong></strong>b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b **a****b **a**x**b **a****b **a****b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b **a****b **a**x**b **a****b **a****b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b <strong>a<strong><strong>b **a</strong></strong>b <strong>a</strong>x</strong>b **a<strong><strong>b **a</strong></strong>b **a****b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix *a**b* then *c**d**e* suffix\"",
+      "markdown": "prefix *a**b* then *c**d**e* suffix",
+      "html": "<p>prefix <em>a**b</em> then <em>c<strong>d</strong>e</em> suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix *a**b* then x *c**d**e* suffix\"",
+      "markdown": "prefix *a**b* then x *c**d**e* suffix",
+      "html": "<p>prefix <em>a**b</em> then x <em>c<strong>d</strong>e</em> suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix *a*x*b* then x *c**d**e* suffix\"",
+      "markdown": "prefix *a*x*b* then x *c**d**e* suffix",
+      "html": "<p>prefix <em>a</em>x<em>b</em> then x <em>c<strong>d</strong>e</em> suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix *a*x*b* then x *c**d*x*e* suffix\"",
+      "markdown": "prefix *a*x*b* then x *c**d*x*e* suffix",
+      "html": "<p>prefix <em>a</em>x<em>b</em> then x <em>c**d</em>x<em>e</em> suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b $x ** y$ **a****b **a****b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b $x ** y$ **a****b **a****b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b **a<strong><strong>b $x ** y$ **a</strong></strong>b **a<strong><strong>b **a</strong></strong>b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b $x ** y$ **a****b **a**x**b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b $x ** y$ **a****b **a**x**b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b <strong>a<strong><strong>b $x ** y$ **a</strong></strong>b <strong>a</strong>x</strong>b **a****b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b `**hidden***` **a****b **a****b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b `**hidden***` **a****b **a****b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b **a<strong><strong>b <code>**hidden***</code> **a</strong></strong>b **a<strong><strong>b **a</strong></strong>b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b `**hidden***` **a****b **a**x**b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b `**hidden***` **a****b **a**x**b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b <strong>a<strong><strong>b <code>**hidden***</code> **a</strong></strong>b <strong>a</strong>x</strong>b **a****b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b <b title=\\\"**hidden***\\\">x</b> **a****b **a****b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b <b title=\"**hidden***\">x</b> **a****b **a****b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b **a<strong><strong>b <b title=\"**hidden***\">x</b> **a</strong></strong>b **a<strong><strong>b **a</strong></strong>b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b <b title=\\\"**hidden***\\\">x</b> **a****b **a**x**b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b <b title=\"**hidden***\">x</b> **a****b **a**x**b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b <strong>a<strong><strong>b <b title=\"**hidden***\">x</b> **a</strong></strong>b <strong>a</strong>x</strong>b **a****b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b <https://example.com/**hidden***> **a****b **a****b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b <https://example.com/**hidden***> **a****b **a****b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b **a<strong><strong>b <a href=\"https://example.com/**hidden***\">https://example.com/**hidden***</a> **a</strong></strong>b **a<strong><strong>b **a</strong></strong>b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b <https://example.com/**hidden***> **a****b **a**x**b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b <https://example.com/**hidden***> **a****b **a**x**b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b <strong>a<strong><strong>b <a href=\"https://example.com/**hidden***\">https://example.com/**hidden***</a> **a</strong></strong>b <strong>a</strong>x</strong>b **a****b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b <x**y@example.com> **a****b **a****b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b <x**y@example.com> **a****b **a****b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b **a<strong><strong>b <a href=\"mailto:x**y@example.com\">x**y@example.com</a> **a</strong></strong>b **a<strong><strong>b **a</strong></strong>b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b <x**y@example.com> **a****b **a**x**b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b <x**y@example.com> **a****b **a**x**b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b <strong>a<strong><strong>b <a href=\"mailto:x**y@example.com\">x**y@example.com</a> **a</strong></strong>b <strong>a</strong>x</strong>b **a****b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b [label](path**hidden***) **a****b **a****b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b [label](path**hidden***) **a****b **a****b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b **a<strong><strong>b <a href=\"path**hidden***\">label</a> **a</strong></strong>b **a<strong><strong>b **a</strong></strong>b suffix</p>\n"
+    },
+    {
+      "name": "cache \"prefix **a****b **a****b **a****b [label](path**hidden***) **a****b **a**x**b **a****b suffix\"",
+      "markdown": "prefix **a****b **a****b **a****b [label](path**hidden***) **a****b **a**x**b **a****b suffix",
+      "html": "<p>prefix **a<strong><strong>b **a</strong></strong>b <strong>a<strong><strong>b <a href=\"path**hidden***\">label</a> **a</strong></strong>b <strong>a</strong>x</strong>b **a****b suffix</p>\n"
+    },
+    {
       "name": "seed 20261105 case 0",
       "markdown": "prefix ___** _ »aa___b*ba\\*»***\\_ suffix",
       "html": "<p>prefix ___** _ »aa___b<em>ba*»</em>**_ suffix</p>\n"

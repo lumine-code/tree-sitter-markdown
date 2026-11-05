@@ -350,6 +350,7 @@ typedef struct {
     size_t previous;
     bool can_open;
     bool can_close;
+    uint32_t star_ordinal;
 } EmphasisRun;
 
 static bool emphasis_pair_allowed(const EmphasisRun *opening, const EmphasisRun *closing) {
@@ -375,7 +376,9 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
                                         unsigned original_modulo,
                                         bool opening_phase,
                                         uint8_t *out_leftmost_unit,
-                                        uint16_t *unmatched_root_openers) {
+                                        uint16_t *unmatched_root_openers,
+                                        uint32_t *next_matched_star,
+                                        uint32_t star_ordinal) {
     if (out_leftmost_unit != NULL) *out_leftmost_unit = 0;
     if (!can_open || count == 0) return 0;
     EmphasisLookahead input = {.lexer = lexer};
@@ -385,10 +388,10 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
     size_t current_run = has_parent ? 1 : 0;
     if (has_parent) {
         runs[0] = (EmphasisRun){parent_delimiter, parent_modulo % 3,
-            parent_remaining, SIZE_MAX, true, parent_can_close};
+            parent_remaining, SIZE_MAX, true, parent_can_close, 0};
     }
     runs[current_run] = (EmphasisRun){delimiter, original_modulo % 3, count,
-        has_parent ? 0 : SIZE_MAX, can_open, can_close};
+        has_parent ? 0 : SIZE_MAX, can_open, can_close, 0};
     size_t length = current_run + 1;
     size_t tail = current_run;
     // Failed opener searches establish a lower bound for each distinct
@@ -399,6 +402,10 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
     uint32_t matched = 0;
     uint16_t compatible_openers = 0;
     uint16_t matched_classes = 0;
+    bool parent_closed = false;
+    uint32_t future_stars = 0;
+    uint32_t first_matched_star[6] = {UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX};
+    bool saw_math = false;
     int32_t character = 0;
     if (!opening_phase && has_parent && can_close && delimiter == parent_delimiter &&
         emphasis_pair_allowed(&runs[0], &runs[current_run])) {
@@ -411,6 +418,7 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
         if (!runs[current_run].remaining) goto done;
     }
     while ((character = emphasis_character(&input, position)) >= 0) {
+        saw_math |= character == '$';
         if (in_link_text && character == ']') break;
         if (character == '\\' && emphasis_ascii_punctuation(emphasis_character(&input, position + 1))) {
             previous = emphasis_character(&input, position + 1);
@@ -450,6 +458,10 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
         size_t start = position;
         do { position++; } while (emphasis_character(&input, position) == character);
         size_t run_length = position - start;
+        if (character == '*') {
+            if (future_stars == UINT32_MAX) abort();
+            future_stars++;
+        }
         int32_t next = emphasis_character(&input, position);
         bool previous_space = is_unicode_whitespace(previous);
         bool next_space = next < 0 || is_unicode_whitespace(next);
@@ -482,7 +494,7 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
         if (!opens && !closes) continue;
         if (length == capacity) runs = emphasis_grow(runs, &capacity, length + 1, sizeof(EmphasisRun));
         size_t current = length++;
-        runs[current] = (EmphasisRun){character, run_length, run_length, tail, opens, closes};
+        runs[current] = (EmphasisRun){character, run_length, run_length, tail, opens, closes, future_stars};
         tail = current;
         if (!closes) continue;
         size_t *bottom = &bottoms[character == '_'][opens][run_length % 3];
@@ -501,7 +513,12 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
             size_t used = runs[opening].remaining >= 2 && runs[current].remaining >= 2 ? 2 : 1;
             unsigned opening_bit = (runs[opening].character == '_' ? 6 : 0) +
                 (runs[opening].can_close ? 3 : 0) + runs[opening].original_length % 3;
-            matched_classes |= (uint16_t)(1u << opening_bit);
+            if (!has_parent || opening != 0) matched_classes |= (uint16_t)(1u << opening_bit);
+            if (runs[opening].character == '*' && opening != current_run &&
+                (!has_parent || opening != 0) &&
+                runs[opening].star_ordinal < first_matched_star[opening_bit]) {
+                first_matched_star[opening_bit] = runs[opening].star_ordinal;
+            }
             runs[opening].remaining -= used;
             runs[current].remaining -= used;
             if (opening == current_run) {
@@ -511,7 +528,10 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
             // A preceding parent can close across the candidate currently
             // being classified. Its unmatched markers then leave the stack.
             // Already formed matches of the candidate remain valid children.
-            if (has_parent && opening == 0 && runs[current_run].remaining) goto done;
+            if (has_parent && opening == 0 && runs[current_run].remaining) {
+                parent_closed = runs[0].remaining == 0;
+                goto done;
+            }
             // Removing intervening candidates is essential: they cannot later
             // form a crossing emphasis interval.
             size_t surviving = runs[opening].remaining ? opening : runs[opening].previous;
@@ -529,14 +549,30 @@ done:
     if (character < 0 && impossible_openers != NULL) {
         *impossible_openers |= (uint16_t)(~compatible_openers & 0x0fff);
     }
-    if (character < 0 && !has_parent && matched == 0 && unmatched_root_openers != NULL) {
-        // An unmatched root opener is inert. Removing it leaves the future
+    if ((character < 0 || parent_closed) && matched == 0 && unmatched_root_openers != NULL) {
+        // An unmatched opener is inert in this scope. Removing it leaves the future
         // delimiter stack unchanged. Only cache its class when no future
         // opener of that class matched either; merely failing the current
         // opener is insufficient (for example, "*a *b *c*"). Never apply this
-        // proof inside a parent, link text, or a partially consumed run.
+        // proof outside this parent's lifetime, inside link text, or for a
+        // partially consumed run. The scanner clears a context's mask when
+        // that context opens or closes, including same-class nested spans.
         unsigned bit = (delimiter == '_' ? 6 : 0) + (can_close ? 3 : 0) + original_modulo % 3;
         if (!(matched_classes & (1u << bit))) *unmatched_root_openers |= (uint16_t)(1u << bit);
+        // A later matched opener of the same class prevents an absence mask,
+        // but earlier candidates still cannot match. Count physical star runs
+        // to expire this proof before that first matched opener. Rich links
+        // can contribute extra actual runs, expiring the bound earlier; code,
+        // HTML and URI atoms are opaque to both traversals. Math is opaque only
+        // at runtime, so a dollar sign disables this ordinal optimization.
+        // Intraword underscores can be internal word tokens, so only stars use
+        // ordinal bounds. Boundaries count runs consumed BEFORE a candidate.
+        if (delimiter == '*' && !saw_math && next_matched_star != NULL &&
+            first_matched_star[bit] != UINT32_MAX &&
+            star_ordinal <= UINT32_MAX - first_matched_star[bit]) {
+            uint32_t boundary = star_ordinal + first_matched_star[bit];
+            if (boundary > next_matched_star[bit]) next_matched_star[bit] = boundary;
+        }
     }
     free(input.characters);
     free(runs);
@@ -554,7 +590,7 @@ static uint32_t emphasis_opening_matches_in_context(TSLexer *lexer, int32_t deli
                                         uint32_t parent_remaining) {
     return emphasis_opening_plan_in_context(lexer, delimiter, count, can_open,
         can_close, in_link_text, bare_autolinks, impossible_openers, parent_delimiter,
-        parent_modulo, parent_can_close, parent_remaining, count % 3, false, NULL, NULL);
+        parent_modulo, parent_can_close, parent_remaining, count % 3, false, NULL, NULL, NULL, 0);
 }
 
 static uint32_t emphasis_opening_matches(TSLexer *lexer, int32_t delimiter,

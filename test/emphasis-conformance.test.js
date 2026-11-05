@@ -4,6 +4,7 @@ const { before, test } = require('node:test');
 const { Language, Parser } = require('web-tree-sitter');
 const specification = require('./fixtures/gfm-emphasis.json');
 const reference = require('./fixtures/emphasis-reference.json');
+const cacheSequences = require('./fixtures/emphasis-cache-sequences');
 const entities = require('../common/html_entities.json');
 
 let language;
@@ -356,7 +357,12 @@ function cachedStates(sources) {
   });
 }
 
-for (const [name, cases] of [
+for (const [name, cases, requiredAtom] of [
+  ...cacheSequences.map(({ name, sources, atom }) => [
+    name,
+    cachedStates(sources),
+    atom,
+  ]),
   [
     'EOF cache invalidation after appending and removing closers',
     cachedStates(['*a', '*a*', '**a', '**a**']),
@@ -436,6 +442,11 @@ for (const [name, cases] of [
         const fresh = freshParser.parse(next);
         try {
           assert.equal(tree.rootNode.hasError, false, next);
+          if (requiredAtom)
+            assert.ok(
+              tree.rootNode.descendantsOfType(requiredAtom).length > 0,
+              `Expected the ${requiredAtom} atom to remain opaque: ${next}`,
+            );
           assert.deepEqual(
             snapshot(tree.rootNode),
             snapshot(fresh.rootNode),

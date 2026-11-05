@@ -2,11 +2,14 @@
 #include "unicode.h"
 #include "emphasis.h"
 #include "inline-preparation.h"
+#include <string.h>
 
+#ifndef UNUSED
 #ifdef _MSC_VER
 #define UNUSED
 #else
 #define UNUSED __attribute__((unused))
+#endif
 #endif
 
 // For explanation of the tokens see grammar.js
@@ -107,7 +110,9 @@ typedef struct {
     uint8_t latex_span_delimiter_length;
     uint8_t strikethrough_delimiter_length;
     uint16_t impossible_openers;
-    uint16_t unmatched_root_openers;
+    uint16_t unmatched_openers[25];
+    uint32_t next_matched_star[25][6];
+    uint32_t star_ordinal;
     uint8_t previous_flank;
     uint8_t parent_context;
     uint32_t image_text_depth;
@@ -122,6 +127,18 @@ typedef struct {
 } Scanner;
 
 static unsigned serialize(Scanner *s, char *buffer) {
+    // Sparse caches keep ordinary external states small. The worst case is
+    // 875 bytes, below Tree-sitter's 1024-byte serialization limit.
+    unsigned masks = 0;
+    unsigned boundaries = 0;
+    for (unsigned index = 0; index < 25; index++) {
+        masks += s->unmatched_openers[index] != 0;
+        for (unsigned bit = 0; bit < 6; bit++) {
+            if (s->next_matched_star[index][bit] <= s->star_ordinal) s->next_matched_star[index][bit] = 0;
+            boundaries += s->next_matched_star[index][bit] != 0;
+        }
+    }
+    if (!boundaries) s->star_ordinal = 0;
     unsigned size = 0;
     buffer[size++] = (char)s->code_span_delimiter_length;
     buffer[size++] = (char)s->latex_span_delimiter_length;
@@ -148,14 +165,28 @@ static unsigned serialize(Scanner *s, char *buffer) {
     buffer[size++] = (char)s->preparation.next_opening_phase;
     buffer[size++] = (char)s->preparation.ending_flank;
     buffer[size++] = (char)s->preparation.ending_boundary;
-    buffer[size++] = (char)s->unmatched_root_openers;
-    buffer[size++] = (char)(s->unmatched_root_openers >> 8);
+    buffer[size++] = (char)masks;
+    for (unsigned index = 0; index < 25; index++) {
+        if (!s->unmatched_openers[index]) continue;
+        buffer[size++] = (char)index;
+        buffer[size++] = (char)s->unmatched_openers[index];
+        buffer[size++] = (char)(s->unmatched_openers[index] >> 8);
+    }
+    buffer[size++] = (char)boundaries;
+    for (unsigned index = 0; index < 25; index++) {
+        for (unsigned bit = 0; bit < 6; bit++) {
+            if (!s->next_matched_star[index][bit]) continue;
+            buffer[size++] = (char)(index * 6 + bit);
+            for (unsigned shift = 0; shift < 32; shift += 8) buffer[size++] = (char)(s->next_matched_star[index][bit] >> shift);
+        }
+    }
+    for (unsigned shift = 0; shift < 32; shift += 8) buffer[size++] = (char)(s->star_ordinal >> shift);
     return size;
 }
 
 static void deserialize(Scanner *s, const char *buffer, unsigned length) {
     *s = (Scanner){.previous_flank = 1};
-    if (length != 46) return;
+    if (length < 50 || length > 875) return;
     unsigned size = 0;
     s->code_span_delimiter_length = (uint8_t)(uint8_t)buffer[size++];
     s->latex_span_delimiter_length = (uint8_t)(uint8_t)buffer[size++];
@@ -182,8 +213,33 @@ static void deserialize(Scanner *s, const char *buffer, unsigned length) {
     s->preparation.next_opening_phase = (bool)(uint8_t)buffer[size++];
     s->preparation.ending_flank = (uint8_t)(uint8_t)buffer[size++];
     s->preparation.ending_boundary = (bool)(uint8_t)buffer[size++];
-    s->unmatched_root_openers = (uint16_t)(uint8_t)buffer[size++];
-    s->unmatched_root_openers |= (uint16_t)((uint16_t)(uint8_t)buffer[size++] << 8);
+    unsigned masks = (uint8_t)buffer[size++];
+    if (masks > 25 || size + masks * 3 + 5 > length) goto invalid;
+    for (unsigned entry = 0; entry < masks; entry++) {
+        unsigned index = (uint8_t)buffer[size++];
+        if (index >= 25) goto invalid;
+        s->unmatched_openers[index] = (uint16_t)(uint8_t)buffer[size++];
+        s->unmatched_openers[index] |= (uint16_t)((uint16_t)(uint8_t)buffer[size++] << 8);
+    }
+    unsigned boundaries = (uint8_t)buffer[size++];
+    if (boundaries > 150 || size + boundaries * 5 + 4 != length) goto invalid;
+    for (unsigned entry = 0; entry < boundaries; entry++) {
+        unsigned index = (uint8_t)buffer[size++];
+        if (index >= 150) goto invalid;
+        for (unsigned shift = 0; shift < 32; shift += 8) s->next_matched_star[index / 6][index % 6] |= (uint32_t)(uint8_t)buffer[size++] << shift;
+    }
+    for (unsigned shift = 0; shift < 32; shift += 8) s->star_ordinal |= (uint32_t)(uint8_t)buffer[size++] << shift;
+    if (s->parent_context < 25 && s->previous_flank < 4 && s->pending_modulo < 3 &&
+        s->preparation.original_modulo < 3 && s->preparation.ending_flank < 4 &&
+        s->preparation.role <= INLINE_TOKEN_CLOSE && s->preparation.kind <= BARE_AUTOLINK_EMAIL &&
+        (s->preparation.role == INLINE_TOKEN_NONE || s->preparation.length > 0) &&
+        (s->preparation.role != INLINE_TOKEN_BARE || s->preparation.kind != BARE_AUTOLINK_NONE) &&
+        ((s->preparation.role != INLINE_TOKEN_OPEN && s->preparation.role != INLINE_TOKEN_CLOSE) ||
+         s->preparation.length == 1 || s->preparation.length == 2) &&
+        (!s->pending_count || s->pending_delimiter == '*' || s->pending_delimiter == '_') &&
+        (s->preparation.role < INLINE_TOKEN_RAW || s->preparation.delimiter == '*' || s->preparation.delimiter == '_')) return;
+invalid:
+    *s = (Scanner){.previous_flank = 1};
 }
 
 static bool parse_leaf_delimiter(TSLexer *lexer, uint8_t *delimiter_length,
@@ -482,7 +538,9 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
             .pending_can_close = s->pending_can_close,
             .pending_opening_phase = s->pending_opening_phase,
             .impossible_openers = &s->impossible_openers,
-            .unmatched_root_openers = &s->unmatched_root_openers,
+            .unmatched_root_openers = &s->unmatched_openers[s->parent_context],
+            .next_matched_star = s->next_matched_star[s->parent_context],
+            .star_ordinal = s->star_ordinal,
         };
         s->preparation = prepare_inline_token(lexer, options);
         if (s->preparation.role == INLINE_TOKEN_NONE) return false;
@@ -504,6 +562,10 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
         }
         lexer->mark_end(lexer);
         lexer->result_symbol = token;
+        if (plan->delimiter == '*' && !s->pending_count) {
+            if (s->star_ordinal == UINT32_MAX) abort();
+            s->star_ordinal++;
+        }
         s->prepared = false;
         s->previous_flank = plan->ending_boundary ? 3 : plan->ending_flank;
         s->pending_delimiter = plan->delimiter;
@@ -512,9 +574,15 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
         s->pending_can_close = plan->original_can_close;
         s->pending_modulo = plan->original_modulo;
         s->pending_opening_phase = plan->next_opening_phase;
+        if (plan->role == INLINE_TOKEN_CLOSE) {
+            s->unmatched_openers[s->parent_context] = 0;
+            memset(s->next_matched_star[s->parent_context], 0, sizeof(s->next_matched_star[0]));
+        }
         if (plan->role == INLINE_TOKEN_OPEN) {
             unsigned frame = (plan->delimiter == '_' ? 6 : 0) + (plan->original_can_close ? 3 : 0) + plan->original_modulo;
             s->parent_context = (uint8_t)(frame * 2 + plan->length);
+            s->unmatched_openers[s->parent_context] = 0;
+            memset(s->next_matched_star[s->parent_context], 0, sizeof(s->next_matched_star[0]));
         }
         return true;
     }
@@ -555,6 +623,10 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
             do { lexer->advance(lexer, false); } while (lexer->lookahead == delimiter);
             lexer->mark_end(lexer);
             lexer->result_symbol = token;
+            if (delimiter == '*' && !s->pending_count) {
+                if (s->star_ordinal == UINT32_MAX) abort();
+                s->star_ordinal++;
+            }
             s->pending_count = 0;
             s->previous_flank = 3;
             return true;
