@@ -252,6 +252,37 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
     int32_t first = emphasis_character(&input, 0);
     bool pending = options.pending_active && options.pending_delimiter == first &&
         options.pending_count != 0;
+    if (pending && (first == '*' || first == '_')) {
+        bool opening = options.pending_opening_phase == INLINE_OPENING_STRONG_REMAINDER &&
+            options.pending_can_open && options.pending_count >= 2 && options.pending_count % 2 == 0;
+        bool closing = options.pending_opening_phase == INLINE_OPENING_NONE &&
+            options.pending_can_close && options.parent_delimiter == first &&
+            options.parent_unit >= 1 && options.parent_unit <= 2 &&
+            options.parent_unit <= options.pending_count &&
+            inline_preparation_parent_pair(options.parent_modulo, options.parent_can_close,
+                options.pending_modulo, options.pending_can_open);
+        uint32_t unit = closing ? options.parent_unit : 2;
+        if ((opening || closing) && emphasis_character(&input, unit - 1) == first) {
+            // The first full PREPARE read this entire run and its relevant
+            // suffix. Tree-sitter retains that lookahead even for a zero-width
+            // token; edits invalidate the proof before this state is reused.
+            // Recheck the consumed prefix, preserving the original run metadata.
+            result = (InlineTokenPreparation){
+                .role = closing ? INLINE_TOKEN_CLOSE : INLINE_TOKEN_OPEN,
+                .delimiter = first,
+                .length = unit,
+                .original_can_open = options.pending_can_open,
+                .original_can_close = options.pending_can_close,
+                .original_modulo = (uint8_t)(options.pending_modulo % 3),
+                .next_remaining = options.pending_count - unit,
+                .next_opening_phase = closing ? INLINE_OPENING_NONE :
+                    options.pending_count > 2 ? INLINE_OPENING_STRONG_REMAINDER : INLINE_OPENING_PLANNED,
+                .ending_flank = 2,
+                .ending_boundary = true,
+            };
+            goto done;
+        }
+    }
     // Neither marker starts an extended autolink. A partially consumed
     // underscore run must first resolve its original emphasis metadata;
     // the dedicated fallback below recognizes any unmatched email prefix.

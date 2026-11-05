@@ -19,6 +19,15 @@ const ASCII_PUNCTUATION = Array.from({ length: 94 }, (_, index) =>
   String.fromCharCode(index + 33),
 ).filter((character) => !/[a-zA-Z0-9]/.test(character));
 
+const WORD_NO_DIGIT_REGEX = new RegExp(
+  '[^' +
+    PUNCTUATION_CHARACTERS_REGEX +
+    '\\p{P}\\p{Zs}\\t\\n\\r\\f0-9]+(_+[^' +
+    PUNCTUATION_CHARACTERS_REGEX +
+    '\\p{P}\\p{Zs}\\t\\n\\r\\f0-9]+)*',
+  'u',
+);
+
 // !!!
 // Notice the call to `add_inline_rules` which generates some additional rules related to parsing
 // inline contents in different contexts.
@@ -106,6 +115,12 @@ module.exports = grammar(
       [$._processing_instruction, $._text_base],
       [$._declaration, $._text_base],
       [$._cdata_section, $._text_base],
+      [$._closing_tag, $._opaque_text_base],
+      [$._open_tag, $._opaque_text_base],
+      [$._html_comment, $._opaque_text_base],
+      [$._processing_instruction, $._opaque_text_base],
+      [$._declaration, $._opaque_text_base],
+      [$._cdata_section, $._opaque_text_base],
       [$._closing_tag, $._text_inline_base],
       [$._open_tag, $._text_inline_base],
       [$._html_comment, $._text_inline_base],
@@ -190,9 +205,7 @@ module.exports = grammar(
       code_span: ($) =>
         seq(
           alias($._code_span_start, $.code_span_delimiter),
-          repeat(
-            choice($._text_base, $._open_bracket, ']', $._soft_line_break),
-          ),
+          repeat(choice($._opaque_text_base, '[', ']', $._newline_token)),
           alias($._code_span_close, $.code_span_delimiter),
         ),
 
@@ -201,10 +214,10 @@ module.exports = grammar(
           alias($._latex_span_start, $.latex_span_delimiter),
           repeat(
             choice(
-              $._text_base,
-              $._open_bracket,
+              $._opaque_text_base,
+              '[',
               ']',
-              $._soft_line_break,
+              $._newline_token,
               $._html_tag,
               $.backslash_escape,
             ),
@@ -594,17 +607,7 @@ module.exports = grammar(
       // conflicts work.
       _word: ($) => choice($._word_no_digit, $._digits),
       _word_no_digit: ($) =>
-        seq(
-          new RegExp(
-            '[^' +
-              PUNCTUATION_CHARACTERS_REGEX +
-              '\\p{P}\\p{Zs}\\t\\n\\r\\f0-9]+(_+[^' +
-              PUNCTUATION_CHARACTERS_REGEX +
-              '\\p{P}\\p{Zs}\\t\\n\\r\\f0-9]+)*',
-            'u',
-          ),
-          optional($._last_token_other),
-        ),
+        seq(WORD_NO_DIGIT_REGEX, optional($._last_token_other)),
       _digits: ($) => seq(/[0-9]+(_+[0-9]+)*/, optional($._last_token_other)),
       _soft_line_break: ($) =>
         seq($._newline_token, optional($._last_token_whitespace)),
@@ -652,6 +655,23 @@ module.exports = grammar(
             '_',
             ...(common.EXTENSION_STRIKETHROUGH ? ['~'] : []),
           ]),
+          '<!--',
+          /<![A-Z]+/,
+          '<?',
+          '<![CDATA[',
+        ),
+      // Opaque spans restore the outer flank after their closing delimiter.
+      _opaque_text_base: ($) =>
+        choice(
+          WORD_NO_DIGIT_REGEX,
+          /[0-9]+(_+[0-9]+)*/,
+          // eslint-disable-next-line no-control-regex -- Keep the same lexical classes as ordinary text.
+          /[\p{P}&&[^\u0000-\u007f]]/v,
+          /[\p{Zs}&&[^ ]]/v,
+          /\f/,
+          $._whitespace_ge_2,
+          / /,
+          ...ASCII_PUNCTUATION.filter((character) => !'[]'.includes(character)),
           '<!--',
           /<![A-Z]+/,
           '<?',
@@ -732,24 +752,24 @@ function add_inline_rules(grammar) {
   for (const link of [true, false]) {
     const suffix = link ? '' : '_no_link';
     const pairs = [];
+    const body = '_body' + suffix;
+    const endpoint = '_content' + suffix;
     const prefix = ($, context) => [
       ...(context ? [optional($[context])] : []),
       ...(link === true ? [] : [optional($._in_link_text)]),
       ...(common.EXTENSION_GFM ? [optional($._bare_autolinks_enabled)] : []),
-      ...(common.EXTENSION_STRIKETHROUGH
+      ...(common.EXTENSION_STRIKETHROUGH && !common.EXTENSION_GFM
         ? [optional($._strikethrough_enabled)]
         : []),
       optional($._prepare_inline),
     ];
-    const elements = ($, excluded) => {
+    const elements = ($) => {
       const result = [
         $._inline_base,
         ...pairs.map((pair) => alias($[pair.name], $[pair.node])),
       ];
-      if (excluded !== 'star') result.push($._literal_star);
-      if (excluded !== 'underscore') result.push($._literal_underscore);
-      if (common.EXTENSION_STRIKETHROUGH && excluded !== 'tilde')
-        result.push($._literal_tilde);
+      result.push($._literal_star, $._literal_underscore);
+      if (common.EXTENSION_STRIKETHROUGH) result.push($._literal_tilde);
       if (link) {
         result.push(
           seq(
@@ -778,8 +798,6 @@ function add_inline_rules(grammar) {
             const unit = strong ? 'strong' : 'em';
             const name =
               '_' + unit + '_' + delimiter + '_' + mode + '_' + modulo + suffix;
-            const body = '_body_' + delimiter + suffix;
-            const endpoint = '_content_no_' + delimiter + suffix;
             const context = '_parent_' + delimiter + '_' + mode + '_' + modulo;
             pairs.push({
               name,
@@ -815,37 +833,16 @@ function add_inline_rules(grammar) {
                   open,
                   $[body],
                   optional($[context]),
-                  optional(strong ? $._parent_strong : $._parent_em),
                   optional($._prepare_inline),
                   close,
                 ),
               );
             };
-            grammar.rules[endpoint] = ($) => elements($, delimiter, false);
-            grammar.rules[body] = ($) => {
-              const middle = seq(
-                ...prefix($, null),
-                $['_literal_' + delimiter],
-              );
-              const item = seq(...prefix($, null), $[endpoint]);
-              return seq(item, repeat(seq(repeat(middle), item)));
-            };
-            conflicts.push([body]);
-            for (const element of [endpoint]) {
-              if (link)
-                conflicts.push(
-                  ['_link_text', element],
-                  ['_link_text_non_empty', element],
-                  ['wiki_link', element],
-                );
-            }
           }
         }
       }
     }
     if (common.EXTENSION_STRIKETHROUGH) {
-      const body = '_body_tilde' + suffix;
-      const endpoint = '_content_no_tilde' + suffix;
       for (const width of ['single', 'double']) {
         for (const mode of ['open', 'both']) {
           const widthSuffix = width === 'double' ? '_double' : '';
@@ -872,20 +869,15 @@ function add_inline_rules(grammar) {
             );
         }
       }
-      grammar.rules[endpoint] = ($) => elements($, 'tilde');
-      grammar.rules[body] = ($) => {
-        const middle = seq(...prefix($, null), $._literal_tilde);
-        const item = seq(...prefix($, null), $[endpoint]);
-        return seq(item, repeat(seq(repeat(middle), item)));
-      };
-      conflicts.push([body]);
-      if (link)
-        conflicts.push(
-          ['_link_text', endpoint],
-          ['_link_text_non_empty', endpoint],
-          ['wiki_link', endpoint],
-        );
     }
+    grammar.rules[endpoint] = ($) => elements($);
+    grammar.rules[body] = ($) => repeat1(seq(...prefix($, null), $[endpoint]));
+    if (link)
+      conflicts.push(
+        ['_link_text', endpoint],
+        ['_link_text_non_empty', endpoint],
+        ['wiki_link', endpoint],
+      );
     const name = '_inline_element' + suffix;
     grammar.rules[name] = ($) => seq(...prefix($, '_parent_root'), elements($));
     grammar.rules['_inline' + suffix] = ($) => repeat1($[name]);

@@ -361,7 +361,12 @@ static bool parse_dollar(Scanner *s, TSLexer *lexer,
 static void capture_parent(Scanner *s, const bool *valid_symbols) {
     for (unsigned token = PARENT_STAR_OPEN_0; token <= PARENT_UNDERSCORE_BOTH_2; token++) {
         if (!valid_symbols[token]) continue;
-        unsigned unit = valid_symbols[PARENT_STRONG] ? 2 : valid_symbols[PARENT_EM] ? 1 : s->parent_context ? (s->parent_context - 1) % 2 + 1 : 1;
+        bool underscore = token >= PARENT_UNDERSCORE_OPEN_0;
+        bool strong_close = valid_symbols[underscore ? CLOSE_UNDERSCORE_STRONG : CLOSE_STAR_STRONG];
+        bool em_close = valid_symbols[underscore ? CLOSE_UNDERSCORE_EM : CLOSE_STAR_EM];
+        // Normal parse states identify the parent unit through one typed closer.
+        unsigned unit = strong_close != em_close ? (strong_close ? 2 : 1) :
+            s->parent_context ? (s->parent_context - 1) % 2 + 1 : 1;
         s->parent_context = (uint8_t)((token - PARENT_STAR_OPEN_0) * 2 + unit);
         return;
     }
