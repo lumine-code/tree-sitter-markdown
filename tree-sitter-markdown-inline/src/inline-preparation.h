@@ -63,7 +63,7 @@ static size_t inline_preparation_email_limit(EmphasisLookahead *input, size_t en
                                                bool previous_whitespace,
                                                bool previous_punctuation,
                                                bool parent_can_close,
-                                               unsigned parent_modulo) {
+                                               unsigned parent_modulo, bool strikethrough) {
     size_t position = 0;
     while (position < end) {
         if (emphasis_character(input, position) != '_') {
@@ -72,10 +72,12 @@ static size_t inline_preparation_email_limit(EmphasisLookahead *input, size_t en
         }
         size_t start = position;
         do { position++; } while (emphasis_character(input, position) == '_');
-        int32_t previous = start ? emphasis_character(input, start - 1) : -1;
-        int32_t next = emphasis_character(input, position);
-        bool before_space = start ? is_unicode_whitespace(previous) : previous_whitespace;
-        bool before_punctuation = start ? is_unicode_punctuation(previous) : previous_punctuation;
+        size_t before = start;
+        while (strikethrough && before && emphasis_character(input, before - 1) == '~') before--;
+        int32_t previous = before ? emphasis_character(input, before - 1) : -1;
+        int32_t next = emphasis_after_delimiter(input, position, strikethrough);
+        bool before_space = before ? is_unicode_whitespace(previous) : previous_whitespace;
+        bool before_punctuation = before ? is_unicode_punctuation(previous) : previous_punctuation;
         bool after_space = next < 0 || is_unicode_whitespace(next);
         bool after_punctuation = next >= 0 && is_unicode_punctuation(next);
         bool left = !after_space && (!after_punctuation || before_space || before_punctuation);
@@ -91,7 +93,7 @@ static size_t inline_preparation_email_limit(EmphasisLookahead *input, size_t en
 static BareAutolinkMatch inline_preparation_bare_match(EmphasisLookahead *input,
         bool left_boundary, bool prev_whitespace, bool prev_punctuation,
         int32_t parent_delimiter, bool parent_can_close, unsigned parent_modulo,
-        bool in_link_text) {
+        bool in_link_text, bool strikethrough) {
     BareAutolinkMatch match = bare_autolink_match(emphasis_bare_autolink_read,
         input, 0, left_boundary, NULL);
     if (match.kind != BARE_AUTOLINK_URI && parent_delimiter == '_') {
@@ -103,7 +105,7 @@ static BareAutolinkMatch inline_preparation_bare_match(EmphasisLookahead *input,
                    (!in_link_text || character != ']')) candidate_end++;
         }
         size_t limit = inline_preparation_email_limit(input, candidate_end,
-            prev_whitespace, prev_punctuation, parent_can_close, parent_modulo);
+            prev_whitespace, prev_punctuation, parent_can_close, parent_modulo, strikethrough);
         if (limit < candidate_end) {
             InlinePreparationBound bounded = {input, limit};
             match = bare_autolink_match(inline_preparation_bounded_read,
@@ -121,7 +123,8 @@ static BareAutolinkMatch inline_preparation_bare_match(EmphasisLookahead *input,
 static InlinePreparation prepare_inline(TSLexer *lexer, bool left_boundary,
                                          bool prev_whitespace, bool prev_punctuation,
                                          int32_t parent_delimiter, bool parent_can_close,
-                                         unsigned parent_modulo, bool in_link_text) {
+                                         unsigned parent_modulo, bool in_link_text,
+                                         uint32_t parent_unit, bool strikethrough) {
     InlinePreparation result = {BARE_AUTOLINK_NONE, 0, 0, false};
     EmphasisLookahead input = {.lexer = lexer};
     int32_t first = emphasis_character(&input, 0);
@@ -136,7 +139,8 @@ static InlinePreparation prepare_inline(TSLexer *lexer, bool left_boundary,
         if (match.kind != BARE_AUTOLINK_EMAIL) goto done;
         size_t count = 1;
         while (emphasis_character(&input, count) == '_') count++;
-        int32_t next = emphasis_character(&input, count);
+        int32_t raw_next = emphasis_character(&input, count);
+        int32_t next = emphasis_after_delimiter(&input, count, strikethrough);
         bool next_space = next < 0 || is_unicode_whitespace(next);
         bool next_punctuation = next >= 0 && is_unicode_punctuation(next);
         bool left = !next_space && (!next_punctuation || prev_whitespace || prev_punctuation);
@@ -149,22 +153,23 @@ static InlinePreparation prepare_inline(TSLexer *lexer, bool left_boundary,
                 .input = &input,
                 .position = count,
             };
-            virtual_lexer.lexer.lookahead = next < 0 ? 0 : next;
+            virtual_lexer.lexer.lookahead = raw_next < 0 ? 0 : raw_next;
             virtual_lexer.lexer.advance = inline_preparation_advance;
             virtual_lexer.lexer.eof = inline_preparation_eof;
             // Only existence of an opening match matters here. A single
             // parent unit detects a crossing parent closure; an eligible
             // initial underscore closer is also rejected by email clipping.
-            uint32_t matches = emphasis_opening_matches_in_context(&virtual_lexer.lexer,
+            uint32_t matches = emphasis_opening_plan_in_context(&virtual_lexer.lexer,
                 '_', (uint32_t)count, opens, closes, in_link_text, true, NULL,
                 parent_delimiter, parent_modulo, parent_can_close,
-                parent_delimiter == '*' || parent_delimiter == '_' ? 1 : 0);
+                parent_unit, count % 3, false, NULL, NULL, NULL, 0, strikethrough,
+                prev_whitespace ? ' ' : prev_punctuation ? '!' : 'a');
             if (matches != 0) goto done;
         }
     }
     match = inline_preparation_bare_match(&input, left_boundary,
         prev_whitespace, prev_punctuation, parent_delimiter, parent_can_close,
-        parent_modulo, in_link_text);
+        parent_modulo, in_link_text, strikethrough);
     if (match.kind == BARE_AUTOLINK_NONE || match.end == 0) goto done;
     if (match.end > UINT32_MAX) abort();
     int32_t ending = emphasis_character(&input, match.end - 1);
@@ -190,6 +195,7 @@ typedef struct {
     bool prev_punctuation;
     bool left_boundary;
     bool bare_autolinks;
+    bool strikethrough;
     int32_t parent_delimiter;
     unsigned parent_modulo;
     bool parent_can_close;
@@ -204,8 +210,8 @@ typedef struct {
     bool pending_opening_phase;
     uint16_t *impossible_openers;
     uint16_t *unmatched_root_openers;
-    uint32_t *next_matched_star;
-    uint32_t star_ordinal;
+    uint32_t *next_matched_marker;
+    uint32_t marker_ordinal;
 } InlineTokenOptions;
 
 typedef struct {
@@ -245,7 +251,7 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
         InlinePreparation bare = prepare_inline(&virtual_lexer.lexer,
             options.left_boundary, options.prev_whitespace, options.prev_punctuation,
             options.parent_delimiter, options.parent_can_close,
-            options.parent_modulo, options.in_link_text);
+            options.parent_modulo, options.in_link_text, options.parent_unit, options.strikethrough);
         if (bare.kind != BARE_AUTOLINK_NONE && !(pending && first == '_')) {
             result.role = INLINE_TOKEN_BARE;
             result.kind = bare.kind;
@@ -255,7 +261,7 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
             goto done;
         }
     }
-    if (first != '*' && first != '_') goto done;
+    if (first != '*' && first != '_' && !(options.strikethrough && first == '~')) goto done;
     size_t count = 1;
     while (emphasis_character(&input, count) == first) count++;
     if (count > UINT32_MAX) abort();
@@ -269,7 +275,7 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
         closes = options.pending_can_close;
         modulo = options.pending_modulo % 3;
     } else {
-        int32_t next = emphasis_character(&input, count);
+        int32_t next = emphasis_after_delimiter(&input, count, options.strikethrough);
         bool after_space = next < 0 || is_unicode_whitespace(next);
         bool after_punctuation = next >= 0 && is_unicode_punctuation(next);
         bool left = !after_space && (!after_punctuation || options.prev_whitespace || options.prev_punctuation);
@@ -278,6 +284,7 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
         closes = first == '_' ? right && (!left || after_punctuation) : right;
         modulo = (unsigned)(count % 3);
     }
+    if (first == '~' && count > 2) opens = closes = false;
     result.delimiter = first;
     result.original_can_open = opens;
     result.original_can_close = closes;
@@ -287,31 +294,34 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
     result.ending_boundary = true;
     uint32_t parent_unit = options.parent_unit == 2 ? 2 : 1;
     bool closes_parent = !opening_phase && closes && options.parent_delimiter == first &&
-        inline_preparation_parent_pair(options.parent_modulo, options.parent_can_close, modulo, opens);
+        (first == '~' ? remaining == parent_unit :
+         inline_preparation_parent_pair(options.parent_modulo, options.parent_can_close, modulo, opens));
     if (closes_parent) {
         result.role = INLINE_TOKEN_CLOSE;
         result.length = parent_unit < remaining ? parent_unit : remaining;
     } else {
         uint8_t leftmost_unit = 0;
         uint32_t matches = 0;
-        unsigned bit = (first == '_' ? 6 : 0) + (closes ? 3 : 0) + modulo;
+        unsigned bit = emphasis_class(first, closes, modulo);
+        bool scope_cache = first != '~' || options.parent_delimiter != '~';
         bool impossible = !options.in_link_text && options.impossible_openers != NULL &&
             (*options.impossible_openers & (1u << bit));
-        impossible |= !pending && !options.in_link_text &&
+        impossible |= scope_cache && !pending && !options.in_link_text &&
             options.unmatched_root_openers != NULL && (*options.unmatched_root_openers & (1u << bit));
-        impossible |= !pending && !options.in_link_text && first == '*' &&
-            options.next_matched_star != NULL && options.star_ordinal < options.next_matched_star[bit];
+        impossible |= scope_cache && !pending && !options.in_link_text && first != '_' &&
+            options.next_matched_marker != NULL && options.marker_ordinal < options.next_matched_marker[emphasis_marker_class(bit)];
         if (opens && !impossible) {
             InlinePreparationLexer virtual_lexer = inline_preparation_virtual(&input, remaining);
             matches = emphasis_opening_plan_in_context(&virtual_lexer.lexer, first,
                 remaining, opens, closes, options.in_link_text, options.bare_autolinks,
                 options.in_link_text ? NULL : options.impossible_openers,
                 options.parent_delimiter, options.parent_modulo, options.parent_can_close,
-                options.parent_delimiter == '*' || options.parent_delimiter == '_' ? parent_unit : 0,
+                options.parent_delimiter ? parent_unit : 0,
                 modulo, opening_phase, &leftmost_unit,
                 options.in_link_text || pending ? NULL : options.unmatched_root_openers,
-                options.in_link_text || pending ? NULL : options.next_matched_star,
-                options.star_ordinal);
+                options.in_link_text || pending ? NULL : options.next_matched_marker,
+                options.marker_ordinal, options.strikethrough,
+                options.prev_whitespace ? ' ' : options.prev_punctuation ? '!' : 'a');
         }
         if (pending && first == '_' && options.bare_autolinks && matches == 0) {
             // Recomputing the remaining run's modulo in prepare_inline would
@@ -322,7 +332,7 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
             BareAutolinkMatch email = inline_preparation_bare_match(&input,
                 options.left_boundary, options.prev_whitespace, options.prev_punctuation,
                 options.parent_delimiter, options.parent_can_close,
-                options.parent_modulo, options.in_link_text);
+                options.parent_modulo, options.in_link_text, options.strikethrough);
             if (email.kind == BARE_AUTOLINK_EMAIL && email.end != 0) {
                 if (email.end > UINT32_MAX) abort();
                 int32_t ending = emphasis_character(&input, email.end - 1);

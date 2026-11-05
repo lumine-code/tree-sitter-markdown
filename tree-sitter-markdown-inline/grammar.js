@@ -78,6 +78,17 @@ module.exports = grammar(
       $._raw_underscore,
       $._image_text_start,
       $._image_text_end,
+      $._strikethrough_open_double,
+      $._strikethrough_close_double,
+      $._raw_tilde,
+      $._parent_tilde_single,
+      $._parent_tilde_double,
+      $._strikethrough_enabled,
+      $._strikethrough_open_both,
+      $._strikethrough_open_double_both,
+      $._parent_tilde_single_both,
+      $._parent_tilde_double_both,
+      $._last_token_escaped_tilde,
     ],
     precedences: ($) => [
       [$.hard_line_break, $._whitespace],
@@ -103,9 +114,7 @@ module.exports = grammar(
       [$._cdata_section, $._text_inline_base],
 
       [$._link_text_non_empty, $._inline_element],
-      [$._link_text_non_empty, $._inline_element_no_tilde],
       [$._link_text, $._inline_element],
-      [$._link_text, $._inline_element_no_tilde],
 
       [$._image_description, $._image_description_non_empty, $._text_base],
       [
@@ -123,7 +132,6 @@ module.exports = grammar(
       [$._link_destination_parenthesis, $.link_title],
 
       [$.wiki_link, $._inline_element],
-      [$.wiki_link, $._inline_element_no_tilde],
     ],
     extras: ($) => [],
 
@@ -135,8 +143,9 @@ module.exports = grammar(
       bare_email_autolink: ($) => $._bare_email_autolink,
       backslash_escape: ($) =>
         choice(
+          seq(token('\\~'), optional($._last_token_escaped_tilde)),
           seq(
-            token(seq('\\', choice('*', '_', '~', '('))),
+            token(seq('\\', choice('*', '_', '('))),
             optional($._last_token_boundary),
           ),
           seq(
@@ -636,7 +645,13 @@ module.exports = grammar(
           $._unicode_whitespace,
           $._form_feed,
           $._whitespace,
-          punctuation_without($, ['[', ']', '*', '_']),
+          punctuation_without($, [
+            '[',
+            ']',
+            '*',
+            '_',
+            ...(common.EXTENSION_STRIKETHROUGH ? ['~'] : []),
+          ]),
           '<!--',
           /<![A-Z]+/,
           '<?',
@@ -707,7 +722,11 @@ function emphasis_parent_tokens($) {
 
 function add_inline_rules(grammar) {
   const conflicts = [];
-  for (const delimiter of ['star', 'underscore']) {
+  for (const delimiter of [
+    'star',
+    'underscore',
+    ...(common.EXTENSION_STRIKETHROUGH ? ['tilde'] : []),
+  ]) {
     grammar.rules['_literal_' + delimiter] = ($) => $['_raw_' + delimiter];
   }
   for (const link of [true, false]) {
@@ -717,6 +736,9 @@ function add_inline_rules(grammar) {
       ...(context ? [optional($[context])] : []),
       ...(link === true ? [] : [optional($._in_link_text)]),
       ...(common.EXTENSION_GFM ? [optional($._bare_autolinks_enabled)] : []),
+      ...(common.EXTENSION_STRIKETHROUGH
+        ? [optional($._strikethrough_enabled)]
+        : []),
       optional($._prepare_inline),
     ];
     const elements = ($, excluded) => {
@@ -726,14 +748,8 @@ function add_inline_rules(grammar) {
       ];
       if (excluded !== 'star') result.push($._literal_star);
       if (excluded !== 'underscore') result.push($._literal_underscore);
-      if (common.EXTENSION_STRIKETHROUGH)
-        result.push(
-          seq(
-            alias($['_strikethrough' + suffix], $.strikethrough),
-            optional($._last_token_boundary),
-          ),
-        );
-      if (excluded !== 'tilde') result.push($._strikethrough_open);
+      if (common.EXTENSION_STRIKETHROUGH && excluded !== 'tilde')
+        result.push($._literal_tilde);
       if (link) {
         result.push(
           seq(
@@ -797,7 +813,6 @@ function add_inline_rules(grammar) {
                 strong ? 3 : 1,
                 seq(
                   open,
-                  optional($[context]),
                   $[body],
                   optional($[context]),
                   optional(strong ? $._parent_strong : $._parent_em),
@@ -828,29 +843,52 @@ function add_inline_rules(grammar) {
         }
       }
     }
-    for (const excluded of ['', 'tilde']) {
-      const variant = excluded ? '_no_' + excluded : '';
-      const name = '_inline_element' + variant + suffix;
-      grammar.rules[name] = ($) =>
-        seq(
-          ...prefix($, excluded ? null : '_parent_root'),
-          elements($, excluded, false),
-        );
-      grammar.rules['_inline' + variant + suffix] = ($) => repeat1($[name]);
-    }
     if (common.EXTENSION_STRIKETHROUGH) {
-      grammar.rules['_strikethrough' + suffix] = ($) =>
-        prec.right(
-          1,
-          seq(
-            alias($._strikethrough_open, $.emphasis_delimiter),
-            optional($._last_token_boundary),
-            $['_inline_no_tilde' + suffix],
-            optional($._prepare_inline),
-            alias($._strikethrough_close, $.emphasis_delimiter),
-          ),
+      const body = '_body_tilde' + suffix;
+      const endpoint = '_content_no_tilde' + suffix;
+      for (const width of ['single', 'double']) {
+        for (const mode of ['open', 'both']) {
+          const widthSuffix = width === 'double' ? '_double' : '';
+          const modeSuffix = mode === 'both' ? '_both' : '';
+          const name = '_strikethrough_' + width + '_' + mode + suffix;
+          const context = '_parent_tilde_' + width + modeSuffix;
+          pairs.push({ name, node: 'strikethrough', delimiter: 'tilde' });
+          grammar.rules[name] = ($) =>
+            prec.dynamic(
+              1,
+              seq(
+                alias(
+                  $['_strikethrough_open' + widthSuffix + modeSuffix],
+                  $.emphasis_delimiter,
+                ),
+                $[body],
+                optional($[context]),
+                optional($._prepare_inline),
+                alias(
+                  $['_strikethrough_close' + widthSuffix],
+                  $.emphasis_delimiter,
+                ),
+              ),
+            );
+        }
+      }
+      grammar.rules[endpoint] = ($) => elements($, 'tilde');
+      grammar.rules[body] = ($) => {
+        const middle = seq(...prefix($, null), $._literal_tilde);
+        const item = seq(...prefix($, null), $[endpoint]);
+        return seq(item, repeat(seq(repeat(middle), item)));
+      };
+      conflicts.push([body]);
+      if (link)
+        conflicts.push(
+          ['_link_text', endpoint],
+          ['_link_text_non_empty', endpoint],
+          ['wiki_link', endpoint],
         );
     }
+    const name = '_inline_element' + suffix;
+    grammar.rules[name] = ($) => seq(...prefix($, '_parent_root'), elements($));
+    grammar.rules['_inline' + suffix] = ($) => repeat1($[name]);
   }
   const oldConflicts = grammar.conflicts;
   const unique = [
@@ -875,10 +913,20 @@ function punctuation_without($, excluded) {
   const other = characters.filter((character) => !'*_~('.includes(character));
   return choice(
     ...(other.length
-      ? [seq(choice(...other), optional($._last_token_punctuation))]
+      ? [
+          seq(
+            other.length === 1 ? other[0] : choice(...other),
+            optional($._last_token_punctuation),
+          ),
+        ]
       : []),
     ...(boundaries.length
-      ? [seq(choice(...boundaries), optional($._last_token_boundary))]
+      ? [
+          seq(
+            boundaries.length === 1 ? boundaries[0] : choice(...boundaries),
+            optional($._last_token_boundary),
+          ),
+        ]
       : []),
   );
 }

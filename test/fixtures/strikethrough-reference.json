@@ -1,0 +1,1261 @@
+{
+  "source": {
+    "repository": "https://github.com/github/cmark-gfm",
+    "revision": "b8eb2e00de094999f978e9cb02b1a78d810812d3",
+    "tag": "0.29.0.gfm.0",
+    "command": "cmark-gfm --to html --unsafe -e strikethrough -e autolink",
+    "note": "Historical GFM single/double-tilde dialect. Mismatched opener widths and other changes in the current reference remain explicit; tests assert the historical outputs.",
+    "crossCheckedRevision": "27d942c8b0a62d192f616e5bf3578f4b6a89e180",
+    "currentDifferences": [
+      "nested tilde widths 1/1/2/1",
+      "nested tilde widths 1/2/1/1",
+      "nested tilde widths 1/2/1/2",
+      "nested tilde widths 2/1/2/1",
+      "nested tilde widths 2/1/2/2",
+      "nested tilde widths 2/2/1/2",
+      "restore tilde parent ~ OPEN child * variant 0",
+      "restore tilde parent ~ OPEN child ** variant 0",
+      "restore tilde parent ~ OPEN child _ variant 0",
+      "restore tilde parent ~ OPEN child __ variant 0",
+      "restore tilde parent ~~ OPEN child * variant 0",
+      "restore tilde parent ~~ OPEN child ** variant 0",
+      "restore tilde parent ~~ OPEN child _ variant 0",
+      "restore tilde parent ~~ OPEN child __ variant 0"
+    ]
+  },
+  "examples": [
+    {
+      "name": "crossed * then ~",
+      "markdown": "*a ~b* c~",
+      "html": "<p><em>a ~b</em> c~</p>\n"
+    },
+    {
+      "name": "crossed ~ then *",
+      "markdown": "~a *b~ c*",
+      "html": "<p><del>a *b</del> c*</p>\n"
+    },
+    {
+      "name": "nested * inside ~",
+      "markdown": "~a *b* c~",
+      "html": "<p><del>a <em>b</em> c</del></p>\n"
+    },
+    {
+      "name": "nested ~ inside *",
+      "markdown": "*a ~b~ c*",
+      "html": "<p><em>a <del>b</del> c</em></p>\n"
+    },
+    {
+      "name": "crossed * then ~~",
+      "markdown": "*a ~~b* c~~",
+      "html": "<p><em>a ~~b</em> c~~</p>\n"
+    },
+    {
+      "name": "crossed ~~ then *",
+      "markdown": "~~a *b~~ c*",
+      "html": "<p><del>a *b</del> c*</p>\n"
+    },
+    {
+      "name": "nested * inside ~~",
+      "markdown": "~~a *b* c~~",
+      "html": "<p><del>a <em>b</em> c</del></p>\n"
+    },
+    {
+      "name": "nested ~~ inside *",
+      "markdown": "*a ~~b~~ c*",
+      "html": "<p><em>a <del>b</del> c</em></p>\n"
+    },
+    {
+      "name": "crossed ** then ~",
+      "markdown": "**a ~b** c~",
+      "html": "<p><strong>a ~b</strong> c~</p>\n"
+    },
+    {
+      "name": "crossed ~ then **",
+      "markdown": "~a **b~ c**",
+      "html": "<p><del>a **b</del> c**</p>\n"
+    },
+    {
+      "name": "nested ** inside ~",
+      "markdown": "~a **b** c~",
+      "html": "<p><del>a <strong>b</strong> c</del></p>\n"
+    },
+    {
+      "name": "nested ~ inside **",
+      "markdown": "**a ~b~ c**",
+      "html": "<p><strong>a <del>b</del> c</strong></p>\n"
+    },
+    {
+      "name": "crossed ** then ~~",
+      "markdown": "**a ~~b** c~~",
+      "html": "<p><strong>a ~~b</strong> c~~</p>\n"
+    },
+    {
+      "name": "crossed ~~ then **",
+      "markdown": "~~a **b~~ c**",
+      "html": "<p><del>a **b</del> c**</p>\n"
+    },
+    {
+      "name": "nested ** inside ~~",
+      "markdown": "~~a **b** c~~",
+      "html": "<p><del>a <strong>b</strong> c</del></p>\n"
+    },
+    {
+      "name": "nested ~~ inside **",
+      "markdown": "**a ~~b~~ c**",
+      "html": "<p><strong>a <del>b</del> c</strong></p>\n"
+    },
+    {
+      "name": "crossed _ then ~",
+      "markdown": "_a ~b_ c~",
+      "html": "<p><em>a ~b</em> c~</p>\n"
+    },
+    {
+      "name": "crossed ~ then _",
+      "markdown": "~a _b~ c_",
+      "html": "<p><del>a _b</del> c_</p>\n"
+    },
+    {
+      "name": "nested _ inside ~",
+      "markdown": "~a _b_ c~",
+      "html": "<p><del>a <em>b</em> c</del></p>\n"
+    },
+    {
+      "name": "nested ~ inside _",
+      "markdown": "_a ~b~ c_",
+      "html": "<p><em>a <del>b</del> c</em></p>\n"
+    },
+    {
+      "name": "crossed _ then ~~",
+      "markdown": "_a ~~b_ c~~",
+      "html": "<p><em>a ~~b</em> c~~</p>\n"
+    },
+    {
+      "name": "crossed ~~ then _",
+      "markdown": "~~a _b~~ c_",
+      "html": "<p><del>a _b</del> c_</p>\n"
+    },
+    {
+      "name": "nested _ inside ~~",
+      "markdown": "~~a _b_ c~~",
+      "html": "<p><del>a <em>b</em> c</del></p>\n"
+    },
+    {
+      "name": "nested ~~ inside _",
+      "markdown": "_a ~~b~~ c_",
+      "html": "<p><em>a <del>b</del> c</em></p>\n"
+    },
+    {
+      "name": "crossed __ then ~",
+      "markdown": "__a ~b__ c~",
+      "html": "<p><strong>a ~b</strong> c~</p>\n"
+    },
+    {
+      "name": "crossed ~ then __",
+      "markdown": "~a __b~ c__",
+      "html": "<p><del>a __b</del> c__</p>\n"
+    },
+    {
+      "name": "nested __ inside ~",
+      "markdown": "~a __b__ c~",
+      "html": "<p><del>a <strong>b</strong> c</del></p>\n"
+    },
+    {
+      "name": "nested ~ inside __",
+      "markdown": "__a ~b~ c__",
+      "html": "<p><strong>a <del>b</del> c</strong></p>\n"
+    },
+    {
+      "name": "crossed __ then ~~",
+      "markdown": "__a ~~b__ c~~",
+      "html": "<p><strong>a ~~b</strong> c~~</p>\n"
+    },
+    {
+      "name": "crossed ~~ then __",
+      "markdown": "~~a __b~~ c__",
+      "html": "<p><del>a __b</del> c__</p>\n"
+    },
+    {
+      "name": "nested __ inside ~~",
+      "markdown": "~~a __b__ c~~",
+      "html": "<p><del>a <strong>b</strong> c</del></p>\n"
+    },
+    {
+      "name": "nested ~~ inside __",
+      "markdown": "__a ~~b~~ c__",
+      "html": "<p><strong>a <del>b</del> c</strong></p>\n"
+    },
+    {
+      "name": "exact tilde widths 1/1",
+      "markdown": "prefix ~a~ suffix",
+      "html": "<p>prefix <del>a</del> suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 1/2",
+      "markdown": "prefix ~a~~ suffix",
+      "html": "<p>prefix ~a~~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 1/3",
+      "markdown": "prefix ~a~~~ suffix",
+      "html": "<p>prefix ~a~~~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 1/4",
+      "markdown": "prefix ~a~~~~ suffix",
+      "html": "<p>prefix ~a~~~~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 2/1",
+      "markdown": "prefix ~~a~ suffix",
+      "html": "<p>prefix ~~a~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 2/2",
+      "markdown": "prefix ~~a~~ suffix",
+      "html": "<p>prefix <del>a</del> suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 2/3",
+      "markdown": "prefix ~~a~~~ suffix",
+      "html": "<p>prefix ~~a~~~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 2/4",
+      "markdown": "prefix ~~a~~~~ suffix",
+      "html": "<p>prefix ~~a~~~~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 3/1",
+      "markdown": "prefix ~~~a~ suffix",
+      "html": "<p>prefix ~~~a~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 3/2",
+      "markdown": "prefix ~~~a~~ suffix",
+      "html": "<p>prefix ~~~a~~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 3/3",
+      "markdown": "prefix ~~~a~~~ suffix",
+      "html": "<p>prefix ~~~a~~~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 3/4",
+      "markdown": "prefix ~~~a~~~~ suffix",
+      "html": "<p>prefix ~~~a~~~~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 4/1",
+      "markdown": "prefix ~~~~a~ suffix",
+      "html": "<p>prefix ~~~~a~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 4/2",
+      "markdown": "prefix ~~~~a~~ suffix",
+      "html": "<p>prefix ~~~~a~~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 4/3",
+      "markdown": "prefix ~~~~a~~~ suffix",
+      "html": "<p>prefix ~~~~a~~~ suffix</p>\n"
+    },
+    {
+      "name": "exact tilde widths 4/4",
+      "markdown": "prefix ~~~~a~~~~ suffix",
+      "html": "<p>prefix ~~~~a~~~~ suffix</p>\n"
+    },
+    {
+      "name": "escape/entity \"prefix \\\\~a~ suffix\"",
+      "markdown": "prefix \\~a~ suffix",
+      "html": "<p>prefix ~a~ suffix</p>\n"
+    },
+    {
+      "name": "escape/entity \"prefix \\\\~~a~~ suffix\"",
+      "markdown": "prefix \\~~a~~ suffix",
+      "html": "<p>prefix ~~a~~ suffix</p>\n"
+    },
+    {
+      "name": "escape/entity \"prefix ~~a\\\\~~ suffix\"",
+      "markdown": "prefix ~~a\\~~ suffix",
+      "html": "<p>prefix ~~a~~ suffix</p>\n"
+    },
+    {
+      "name": "escape/entity \"prefix ~~a &amp; b~~ suffix\"",
+      "markdown": "prefix ~~a &amp; b~~ suffix",
+      "html": "<p>prefix <del>a &amp; b</del> suffix</p>\n"
+    },
+    {
+      "name": "dual-purpose mismatched widths \"~a~~b~c~~\"",
+      "markdown": "~a~~b~c~~",
+      "html": "<p><del>a~~b</del>c~~</p>\n"
+    },
+    {
+      "name": "dual-purpose mismatched widths \"~~a~b~~c~\"",
+      "markdown": "~~a~b~~c~",
+      "html": "<p><del>a~b</del>c~</p>\n"
+    },
+    {
+      "name": "dual-purpose mismatched widths \"~a~~b~ c~~\"",
+      "markdown": "~a~~b~ c~~",
+      "html": "<p><del>a~~b</del> c~~</p>\n"
+    },
+    {
+      "name": "dual-purpose mismatched widths \"~~a~b~~ c~\"",
+      "markdown": "~~a~b~~ c~",
+      "html": "<p><del>a~b</del> c~</p>\n"
+    },
+    {
+      "name": "nested tilde widths 1/1/1/1",
+      "markdown": "~a ~b~ c~",
+      "html": "<p><del>a <del>b</del> c</del></p>\n"
+    },
+    {
+      "name": "nested tilde widths 1/1/1/2",
+      "markdown": "~a ~b~ c~~",
+      "html": "<p>~a <del>b</del> c~~</p>\n"
+    },
+    {
+      "name": "nested tilde widths 1/1/2/1",
+      "markdown": "~a ~b~~ c~",
+      "html": "<p>~a <del>b~~ c</del></p>\n",
+      "currentHtml": "<p><del>a ~b~~ c</del></p>\n"
+    },
+    {
+      "name": "nested tilde widths 1/1/2/2",
+      "markdown": "~a ~b~~ c~~",
+      "html": "<p>~a ~b~~ c~~</p>\n"
+    },
+    {
+      "name": "nested tilde widths 1/2/1/1",
+      "markdown": "~a ~~b~ c~",
+      "html": "<p>~a ~~b~ c~</p>\n",
+      "currentHtml": "<p><del>a ~~b~ c</del></p>\n"
+    },
+    {
+      "name": "nested tilde widths 1/2/1/2",
+      "markdown": "~a ~~b~ c~~",
+      "html": "<p>~a <del>b~ c</del></p>\n",
+      "currentHtml": "<p>~a ~~b~ c~~</p>\n"
+    },
+    {
+      "name": "nested tilde widths 1/2/2/1",
+      "markdown": "~a ~~b~~ c~",
+      "html": "<p><del>a <del>b</del> c</del></p>\n"
+    },
+    {
+      "name": "nested tilde widths 1/2/2/2",
+      "markdown": "~a ~~b~~ c~~",
+      "html": "<p>~a <del>b</del> c~~</p>\n"
+    },
+    {
+      "name": "nested tilde widths 2/1/1/1",
+      "markdown": "~~a ~b~ c~",
+      "html": "<p>~~a <del>b</del> c~</p>\n"
+    },
+    {
+      "name": "nested tilde widths 2/1/1/2",
+      "markdown": "~~a ~b~ c~~",
+      "html": "<p><del>a <del>b</del> c</del></p>\n"
+    },
+    {
+      "name": "nested tilde widths 2/1/2/1",
+      "markdown": "~~a ~b~~ c~",
+      "html": "<p>~~a <del>b~~ c</del></p>\n",
+      "currentHtml": "<p>~~a ~b~~ c~</p>\n"
+    },
+    {
+      "name": "nested tilde widths 2/1/2/2",
+      "markdown": "~~a ~b~~ c~~",
+      "html": "<p>~~a ~b~~ c~~</p>\n",
+      "currentHtml": "<p><del>a ~b~~ c</del></p>\n"
+    },
+    {
+      "name": "nested tilde widths 2/2/1/1",
+      "markdown": "~~a ~~b~ c~",
+      "html": "<p>~~a ~~b~ c~</p>\n"
+    },
+    {
+      "name": "nested tilde widths 2/2/1/2",
+      "markdown": "~~a ~~b~ c~~",
+      "html": "<p>~~a <del>b~ c</del></p>\n",
+      "currentHtml": "<p><del>a ~~b~ c</del></p>\n"
+    },
+    {
+      "name": "nested tilde widths 2/2/2/1",
+      "markdown": "~~a ~~b~~ c~",
+      "html": "<p>~~a <del>b</del> c~</p>\n"
+    },
+    {
+      "name": "nested tilde widths 2/2/2/2",
+      "markdown": "~~a ~~b~~ c~~",
+      "html": "<p><del>a <del>b</del> c</del></p>\n"
+    },
+    {
+      "name": "tilde flanks \"a~b~c\"",
+      "markdown": "a~b~c",
+      "html": "<p>a<del>b</del>c</p>\n"
+    },
+    {
+      "name": "tilde flanks \"~ a~\"",
+      "markdown": "~ a~",
+      "html": "<p>~ a~</p>\n"
+    },
+    {
+      "name": "tilde flanks \"~a ~\"",
+      "markdown": "~a ~",
+      "html": "<p>~a ~</p>\n"
+    },
+    {
+      "name": "tilde flanks \"!~?a~.\"",
+      "markdown": "!~?a~.",
+      "html": "<p>!<del>?a</del>.</p>\n"
+    },
+    {
+      "name": "tilde flanks \"~!a~\"",
+      "markdown": "~!a~",
+      "html": "<p><del>!a</del></p>\n"
+    },
+    {
+      "name": "tilde flanks \"a~!b~c\"",
+      "markdown": "a~!b~c",
+      "html": "<p>a~!b~c</p>\n"
+    },
+    {
+      "name": "opaque \"~a `b~` c~\"",
+      "markdown": "~a `b~` c~",
+      "requiredAtom": "code_span",
+      "html": "<p><del>a <code>b~</code> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~a <b title=\\\"~\\\"> c~\"",
+      "markdown": "~a <b title=\"~\"> c~",
+      "requiredAtom": "html_tag",
+      "html": "<p><del>a <b title=\"~\"> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~a [b](path~) c~\"",
+      "markdown": "~a [b](path~) c~",
+      "requiredAtom": "inline_link",
+      "html": "<p><del>a <a href=\"path~\">b</a> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~a [*b*](u) c~\"",
+      "markdown": "~a [*b*](u) c~",
+      "requiredAtom": "inline_link",
+      "html": "<p><del>a <a href=\"u\"><em>b</em></a> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~a ![*b*](i) c~\"",
+      "markdown": "~a ![*b*](i) c~",
+      "requiredAtom": "image",
+      "html": "<p><del>a <img src=\"i\" alt=\"b\" /> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~a <https://example.org/p~> c~\"",
+      "markdown": "~a <https://example.org/p~> c~",
+      "requiredAtom": "uri_autolink",
+      "html": "<p><del>a <a href=\"https://example.org/p~\">https://example.org/p~</a> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~a https://example.org/p~q c~\"",
+      "markdown": "~a https://example.org/p~q c~",
+      "requiredAtom": "bare_uri_autolink",
+      "html": "<p><del>a <a href=\"https://example.org/p~q\">https://example.org/p~q</a> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~a local_~b@example.org c~\"",
+      "markdown": "~a local_~b@example.org c~",
+      "requiredAtom": "bare_email_autolink",
+      "html": "<p>~a local_<del><a href=\"mailto:b@example.org\">b@example.org</a> c</del></p>\n"
+    },
+    {
+      "name": "Unicode \"«~λ_2~»\"",
+      "markdown": "«~λ_2~»",
+      "html": "<p>«<del>λ_2</del>»</p>\n"
+    },
+    {
+      "name": "Unicode \"😀~λ_2~😀\"",
+      "markdown": "😀~λ_2~😀",
+      "html": "<p>😀<del>λ_2</del>😀</p>\n"
+    },
+    {
+      "name": "Unicode \"~a b~\"",
+      "markdown": "~a b~",
+      "html": "<p><del>a b</del></p>\n"
+    },
+    {
+      "name": "Unicode \"λ~β~γ\"",
+      "markdown": "λ~β~γ",
+      "html": "<p>λ<del>β</del>γ</p>\n"
+    },
+    {
+      "name": "multiline \"~a\\n*b* c~\"",
+      "markdown": "~a\n*b* c~",
+      "html": "<p><del>a\n<em>b</em> c</del></p>\n"
+    },
+    {
+      "name": "multiline \"*a\\n~b* c~\"",
+      "markdown": "*a\n~b* c~",
+      "html": "<p><em>a\n~b</em> c~</p>\n"
+    },
+    {
+      "name": "tilde flanks \"a~~b~~c\"",
+      "markdown": "a~~b~~c",
+      "html": "<p>a<del>b</del>c</p>\n"
+    },
+    {
+      "name": "tilde flanks \"~~ a~~\"",
+      "markdown": "~~ a~~",
+      "html": "<p>~~ a~~</p>\n"
+    },
+    {
+      "name": "tilde flanks \"~~a ~~\"",
+      "markdown": "~~a ~~",
+      "html": "<p>~~a ~~</p>\n"
+    },
+    {
+      "name": "tilde flanks \"!~~?a~~.\"",
+      "markdown": "!~~?a~~.",
+      "html": "<p>!<del>?a</del>.</p>\n"
+    },
+    {
+      "name": "tilde flanks \"~~!a~~\"",
+      "markdown": "~~!a~~",
+      "html": "<p><del>!a</del></p>\n"
+    },
+    {
+      "name": "tilde flanks \"a~~!b~~c\"",
+      "markdown": "a~~!b~~c",
+      "html": "<p>a~~!b~~c</p>\n"
+    },
+    {
+      "name": "opaque \"~~a `b~~` c~~\"",
+      "markdown": "~~a `b~~` c~~",
+      "requiredAtom": "code_span",
+      "html": "<p><del>a <code>b~~</code> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~~a <b title=\\\"~~\\\"> c~~\"",
+      "markdown": "~~a <b title=\"~~\"> c~~",
+      "requiredAtom": "html_tag",
+      "html": "<p><del>a <b title=\"~~\"> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~~a [b](path~~) c~~\"",
+      "markdown": "~~a [b](path~~) c~~",
+      "requiredAtom": "inline_link",
+      "html": "<p><del>a <a href=\"path~~\">b</a> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~~a [*b*](u) c~~\"",
+      "markdown": "~~a [*b*](u) c~~",
+      "requiredAtom": "inline_link",
+      "html": "<p><del>a <a href=\"u\"><em>b</em></a> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~~a ![*b*](i) c~~\"",
+      "markdown": "~~a ![*b*](i) c~~",
+      "requiredAtom": "image",
+      "html": "<p><del>a <img src=\"i\" alt=\"b\" /> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~~a <https://example.org/p~~> c~~\"",
+      "markdown": "~~a <https://example.org/p~~> c~~",
+      "requiredAtom": "uri_autolink",
+      "html": "<p><del>a <a href=\"https://example.org/p~~\">https://example.org/p~~</a> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~~a https://example.org/p~~q c~~\"",
+      "markdown": "~~a https://example.org/p~~q c~~",
+      "requiredAtom": "bare_uri_autolink",
+      "html": "<p><del>a <a href=\"https://example.org/p~~q\">https://example.org/p~~q</a> c</del></p>\n"
+    },
+    {
+      "name": "opaque \"~~a local_~~b@example.org c~~\"",
+      "markdown": "~~a local_~~b@example.org c~~",
+      "requiredAtom": "bare_email_autolink",
+      "html": "<p>~~a local_<del><a href=\"mailto:b@example.org\">b@example.org</a> c</del></p>\n"
+    },
+    {
+      "name": "Unicode \"«~~λ_2~~»\"",
+      "markdown": "«~~λ_2~~»",
+      "html": "<p>«<del>λ_2</del>»</p>\n"
+    },
+    {
+      "name": "Unicode \"😀~~λ_2~~😀\"",
+      "markdown": "😀~~λ_2~~😀",
+      "html": "<p>😀<del>λ_2</del>😀</p>\n"
+    },
+    {
+      "name": "Unicode \"~~a b~~\"",
+      "markdown": "~~a b~~",
+      "html": "<p><del>a b</del></p>\n"
+    },
+    {
+      "name": "Unicode \"λ~~β~~γ\"",
+      "markdown": "λ~~β~~γ",
+      "html": "<p>λ<del>β</del>γ</p>\n"
+    },
+    {
+      "name": "multiline \"~~a\\n*b* c~~\"",
+      "markdown": "~~a\n*b* c~~",
+      "html": "<p><del>a\n<em>b</em> c</del></p>\n"
+    },
+    {
+      "name": "multiline \"*a\\n~~b* c~~\"",
+      "markdown": "*a\n~~b* c~~",
+      "html": "<p><em>a\n~~b</em> c~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child * variant 0",
+      "markdown": "prefix ~a *b* c~~ d~",
+      "html": "<p>prefix <del>a <em>b</em> c~~ d</del></p>\n",
+      "currentHtml": "<p>prefix ~a <em>b</em> c~~ d~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child * variant 1",
+      "markdown": "prefix ~a *b*~~c~",
+      "html": "<p>prefix ~a <em>b</em>~~c~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child * variant 2",
+      "markdown": "prefix ~a *b* c~~d~",
+      "html": "<p>prefix <del>a <em>b</em> c~~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child * variant 3",
+      "markdown": "prefix ~a *b* c~~d~e~~",
+      "html": "<p>prefix <del>a <em>b</em> c~~d</del>e~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child ** variant 0",
+      "markdown": "prefix ~a **b** c~~ d~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~~ d</del></p>\n",
+      "currentHtml": "<p>prefix ~a <strong>b</strong> c~~ d~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child ** variant 1",
+      "markdown": "prefix ~a **b**~~c~",
+      "html": "<p>prefix ~a <strong>b</strong>~~c~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child ** variant 2",
+      "markdown": "prefix ~a **b** c~~d~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child ** variant 3",
+      "markdown": "prefix ~a **b** c~~d~e~~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~~d</del>e~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child _ variant 0",
+      "markdown": "prefix ~a _b_ c~~ d~",
+      "html": "<p>prefix <del>a <em>b</em> c~~ d</del></p>\n",
+      "currentHtml": "<p>prefix ~a <em>b</em> c~~ d~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child _ variant 1",
+      "markdown": "prefix ~a _b_~~c~",
+      "html": "<p>prefix ~a _b_~~c~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child _ variant 2",
+      "markdown": "prefix ~a _b_ c~~d~",
+      "html": "<p>prefix <del>a <em>b</em> c~~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child _ variant 3",
+      "markdown": "prefix ~a _b_ c~~d~e~~",
+      "html": "<p>prefix <del>a <em>b</em> c~~d</del>e~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child __ variant 0",
+      "markdown": "prefix ~a __b__ c~~ d~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~~ d</del></p>\n",
+      "currentHtml": "<p>prefix ~a <strong>b</strong> c~~ d~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child __ variant 1",
+      "markdown": "prefix ~a __b__~~c~",
+      "html": "<p>prefix ~a __b__~~c~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child __ variant 2",
+      "markdown": "prefix ~a __b__ c~~d~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ OPEN child __ variant 3",
+      "markdown": "prefix ~a __b__ c~~d~e~~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~~d</del>e~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child * variant 0",
+      "markdown": "prefix a~a *b* c~~ d~",
+      "html": "<p>prefix a<del>a <em>b</em> c~~ d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child * variant 1",
+      "markdown": "prefix a~a *b*~~c~",
+      "html": "<p>prefix a~a <em>b</em>~~c~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child * variant 2",
+      "markdown": "prefix a~a *b* c~~d~",
+      "html": "<p>prefix a<del>a <em>b</em> c~~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child * variant 3",
+      "markdown": "prefix a~a *b* c~~d~e~~",
+      "html": "<p>prefix a<del>a <em>b</em> c~~d</del>e~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child ** variant 0",
+      "markdown": "prefix a~a **b** c~~ d~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~~ d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child ** variant 1",
+      "markdown": "prefix a~a **b**~~c~",
+      "html": "<p>prefix a~a <strong>b</strong>~~c~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child ** variant 2",
+      "markdown": "prefix a~a **b** c~~d~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child ** variant 3",
+      "markdown": "prefix a~a **b** c~~d~e~~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~~d</del>e~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child _ variant 0",
+      "markdown": "prefix a~a _b_ c~~ d~",
+      "html": "<p>prefix a<del>a <em>b</em> c~~ d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child _ variant 1",
+      "markdown": "prefix a~a _b_~~c~",
+      "html": "<p>prefix a~a _b_~~c~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child _ variant 2",
+      "markdown": "prefix a~a _b_ c~~d~",
+      "html": "<p>prefix a<del>a <em>b</em> c~~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child _ variant 3",
+      "markdown": "prefix a~a _b_ c~~d~e~~",
+      "html": "<p>prefix a<del>a <em>b</em> c~~d</del>e~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child __ variant 0",
+      "markdown": "prefix a~a __b__ c~~ d~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~~ d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child __ variant 1",
+      "markdown": "prefix a~a __b__~~c~",
+      "html": "<p>prefix a~a __b__~~c~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child __ variant 2",
+      "markdown": "prefix a~a __b__ c~~d~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~ BOTH child __ variant 3",
+      "markdown": "prefix a~a __b__ c~~d~e~~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~~d</del>e~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child * variant 0",
+      "markdown": "prefix ~~a *b* c~ d~~",
+      "html": "<p>prefix <del>a <em>b</em> c~ d</del></p>\n",
+      "currentHtml": "<p>prefix ~~a <em>b</em> c~ d~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child * variant 1",
+      "markdown": "prefix ~~a *b*~c~~",
+      "html": "<p>prefix ~~a <em>b</em>~c~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child * variant 2",
+      "markdown": "prefix ~~a *b* c~d~~",
+      "html": "<p>prefix <del>a <em>b</em> c~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child * variant 3",
+      "markdown": "prefix ~~a *b* c~d~~e~",
+      "html": "<p>prefix <del>a <em>b</em> c~d</del>e~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child ** variant 0",
+      "markdown": "prefix ~~a **b** c~ d~~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~ d</del></p>\n",
+      "currentHtml": "<p>prefix ~~a <strong>b</strong> c~ d~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child ** variant 1",
+      "markdown": "prefix ~~a **b**~c~~",
+      "html": "<p>prefix ~~a <strong>b</strong>~c~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child ** variant 2",
+      "markdown": "prefix ~~a **b** c~d~~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child ** variant 3",
+      "markdown": "prefix ~~a **b** c~d~~e~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~d</del>e~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child _ variant 0",
+      "markdown": "prefix ~~a _b_ c~ d~~",
+      "html": "<p>prefix <del>a <em>b</em> c~ d</del></p>\n",
+      "currentHtml": "<p>prefix ~~a <em>b</em> c~ d~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child _ variant 1",
+      "markdown": "prefix ~~a _b_~c~~",
+      "html": "<p>prefix ~~a _b_~c~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child _ variant 2",
+      "markdown": "prefix ~~a _b_ c~d~~",
+      "html": "<p>prefix <del>a <em>b</em> c~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child _ variant 3",
+      "markdown": "prefix ~~a _b_ c~d~~e~",
+      "html": "<p>prefix <del>a <em>b</em> c~d</del>e~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child __ variant 0",
+      "markdown": "prefix ~~a __b__ c~ d~~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~ d</del></p>\n",
+      "currentHtml": "<p>prefix ~~a <strong>b</strong> c~ d~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child __ variant 1",
+      "markdown": "prefix ~~a __b__~c~~",
+      "html": "<p>prefix ~~a __b__~c~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child __ variant 2",
+      "markdown": "prefix ~~a __b__ c~d~~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ OPEN child __ variant 3",
+      "markdown": "prefix ~~a __b__ c~d~~e~",
+      "html": "<p>prefix <del>a <strong>b</strong> c~d</del>e~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child * variant 0",
+      "markdown": "prefix a~~a *b* c~ d~~",
+      "html": "<p>prefix a<del>a <em>b</em> c~ d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child * variant 1",
+      "markdown": "prefix a~~a *b*~c~~",
+      "html": "<p>prefix a~~a <em>b</em>~c~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child * variant 2",
+      "markdown": "prefix a~~a *b* c~d~~",
+      "html": "<p>prefix a<del>a <em>b</em> c~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child * variant 3",
+      "markdown": "prefix a~~a *b* c~d~~e~",
+      "html": "<p>prefix a<del>a <em>b</em> c~d</del>e~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child ** variant 0",
+      "markdown": "prefix a~~a **b** c~ d~~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~ d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child ** variant 1",
+      "markdown": "prefix a~~a **b**~c~~",
+      "html": "<p>prefix a~~a <strong>b</strong>~c~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child ** variant 2",
+      "markdown": "prefix a~~a **b** c~d~~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child ** variant 3",
+      "markdown": "prefix a~~a **b** c~d~~e~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~d</del>e~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child _ variant 0",
+      "markdown": "prefix a~~a _b_ c~ d~~",
+      "html": "<p>prefix a<del>a <em>b</em> c~ d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child _ variant 1",
+      "markdown": "prefix a~~a _b_~c~~",
+      "html": "<p>prefix a~~a _b_~c~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child _ variant 2",
+      "markdown": "prefix a~~a _b_ c~d~~",
+      "html": "<p>prefix a<del>a <em>b</em> c~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child _ variant 3",
+      "markdown": "prefix a~~a _b_ c~d~~e~",
+      "html": "<p>prefix a<del>a <em>b</em> c~d</del>e~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child __ variant 0",
+      "markdown": "prefix a~~a __b__ c~ d~~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~ d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child __ variant 1",
+      "markdown": "prefix a~~a __b__~c~~",
+      "html": "<p>prefix a~~a __b__~c~~</p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child __ variant 2",
+      "markdown": "prefix a~~a __b__ c~d~~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~d</del></p>\n"
+    },
+    {
+      "name": "restore tilde parent ~~ BOTH child __ variant 3",
+      "markdown": "prefix a~~a __b__ c~d~~e~",
+      "html": "<p>prefix a<del>a <strong>b</strong> c~d</del>e~</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix _b_~c suffix\"",
+      "markdown": "prefix _b_~c suffix",
+      "html": "<p>prefix _b_~c suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix ~a~_b_ suffix\"",
+      "markdown": "prefix ~a~_b_ suffix",
+      "html": "<p>prefix <del>a</del>_b_ suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix *~ b~* suffix\"",
+      "markdown": "prefix *~ b~* suffix",
+      "html": "<p>prefix *~ b~* suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix *~b ~* suffix\"",
+      "markdown": "prefix *~b ~* suffix",
+      "html": "<p>prefix *~b ~* suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix _b_~~c suffix\"",
+      "markdown": "prefix _b_~~c suffix",
+      "html": "<p>prefix _b_~~c suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix ~~a~~_b_ suffix\"",
+      "markdown": "prefix ~~a~~_b_ suffix",
+      "html": "<p>prefix <del>a</del>_b_ suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix *~~ b~~* suffix\"",
+      "markdown": "prefix *~~ b~~* suffix",
+      "html": "<p>prefix *~~ b~~* suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix *~~b ~~* suffix\"",
+      "markdown": "prefix *~~b ~~* suffix",
+      "html": "<p>prefix *~~b ~~* suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix _b_~~~c suffix\"",
+      "markdown": "prefix _b_~~~c suffix",
+      "html": "<p>prefix _b_~~~c suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix ~~~a~~~_b_ suffix\"",
+      "markdown": "prefix ~~~a~~~_b_ suffix",
+      "html": "<p>prefix ~~~a~~~_b_ suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix *~~~ b~~~* suffix\"",
+      "markdown": "prefix *~~~ b~~~* suffix",
+      "html": "<p>prefix *~~~ b~~~* suffix</p>\n"
+    },
+    {
+      "name": "effective flank skipping tilde \"prefix *~~~b ~~~* suffix\"",
+      "markdown": "prefix *~~~b ~~~* suffix",
+      "html": "<p>prefix *~~~b ~~~* suffix</p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"prefix \\\\~_b_ suffix\"",
+      "markdown": "prefix \\~_b_ suffix",
+      "html": "<p>prefix ~<em>b</em> suffix</p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"prefix `a`~_b_ suffix\"",
+      "markdown": "prefix `a`~_b_ suffix",
+      "html": "<p>prefix <code>a</code>~<em>b</em> suffix</p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"prefix <b>~_c_ suffix\"",
+      "markdown": "prefix <b>~_c_ suffix",
+      "html": "<p>prefix <b>~<em>c</em> suffix</p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"prefix [a](b)~_c_ suffix\"",
+      "markdown": "prefix [a](b)~_c_ suffix",
+      "html": "<p>prefix <a href=\"b\">a</a>~<em>c</em> suffix</p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"prefix ~a~https://example.org/p suffix\"",
+      "markdown": "prefix ~a~https://example.org/p suffix",
+      "html": "<p>prefix <del>a</del><a href=\"https://example.org/p\">https://example.org/p</a> suffix</p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"prefix ~a~local@example.org suffix\"",
+      "markdown": "prefix ~a~local@example.org suffix",
+      "html": "<p>prefix <del>a</del><a href=\"mailto:local@example.org\">local@example.org</a> suffix</p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"_b_\\\\~c\"",
+      "markdown": "_b_\\~c",
+      "html": "<p><em>b</em>~c</p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"a\\\\~_b_\"",
+      "markdown": "a\\~_b_",
+      "html": "<p>a~<em>b</em></p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"\\\\~~a~\"",
+      "markdown": "\\~~a~",
+      "html": "<p>~<del>a</del></p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"~_a_~\"",
+      "markdown": "~_a_~",
+      "html": "<p><del><em>a</em></del></p>\n"
+    },
+    {
+      "name": "effective flank at escape or atom \"_b_~~~ c\"",
+      "markdown": "_b_~~~ c",
+      "html": "<p><em>b</em>~~~ c</p>\n"
+    },
+    {
+      "name": "incremental \"*a ~~b c~~\"",
+      "markdown": "*a ~~b c~~",
+      "html": "<p>*a <del>b c</del></p>\n"
+    },
+    {
+      "name": "incremental \"*a ~~b* c\"",
+      "markdown": "*a ~~b* c",
+      "html": "<p><em>a ~~b</em> c</p>\n"
+    },
+    {
+      "name": "incremental \"prefix ~~a suffix\"",
+      "markdown": "prefix ~~a suffix",
+      "html": "<p>prefix ~~a suffix</p>\n"
+    },
+    {
+      "name": "incremental \"~~a `b~~` c\"",
+      "markdown": "~~a `b~~` c",
+      "html": "<p>~~a <code>b~~</code> c</p>\n"
+    },
+    {
+      "name": "incremental \"~~a b~~ c\"",
+      "markdown": "~~a b~~ c",
+      "html": "<p><del>a b</del> c</p>\n"
+    },
+    {
+      "name": "incremental \"~~a [b](path~~) c\"",
+      "markdown": "~~a [b](path~~) c",
+      "html": "<p>~~a <a href=\"path~~\">b</a> c</p>\n"
+    },
+    {
+      "name": "incremental \"~~a [b] path~~) c\"",
+      "markdown": "~~a [b] path~~) c",
+      "html": "<p><del>a [b] path</del>) c</p>\n"
+    },
+    {
+      "name": "incremental \"😀 ~~λ_2 *a*~~\"",
+      "markdown": "😀 ~~λ_2 *a*~~",
+      "html": "<p>😀 <del>λ_2 <em>a</em></del></p>\n"
+    },
+    {
+      "name": "incremental \"😀 ~λ_2 *a*~\"",
+      "markdown": "😀 ~λ_2 *a*~",
+      "html": "<p>😀 <del>λ_2 <em>a</em></del></p>\n"
+    },
+    {
+      "name": "incremental \"😀 ~λ_2\\n*a*~\"",
+      "markdown": "😀 ~λ_2\n*a*~",
+      "html": "<p>😀 <del>λ_2\n<em>a</em></del></p>\n"
+    },
+    {
+      "name": "incremental \"prefix ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b suffix\"",
+      "markdown": "prefix ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b suffix",
+      "html": "<p>prefix ~a<del>b ~a</del>b ~a<del>b ~a</del>b ~a<del>b ~a</del>b ~a<del>b ~a</del>b suffix</p>\n"
+    },
+    {
+      "name": "incremental \"prefix ~a~~b ~a~~b ~a~~b ~a~~b ~x~ ~a~~b ~a~~b ~a~~b ~a~~b suffix\"",
+      "markdown": "prefix ~a~~b ~a~~b ~a~~b ~a~~b ~x~ ~a~~b ~a~~b ~a~~b ~a~~b suffix",
+      "html": "<p>prefix ~a<del>b ~a</del>b ~a<del>b ~a</del>b <del>x</del> ~a<del>b ~a</del>b ~a<del>b ~a</del>b suffix</p>\n"
+    },
+    {
+      "name": "incremental \"prefix ~a~~b ~a~~b ~a~~b ~a~~b `*~x~~*` <b title=\\\"*~x~~*\\\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~x~ ~a~~b ~a~~b ~a~~b ~a~~b suffix\"",
+      "markdown": "prefix ~a~~b ~a~~b ~a~~b ~a~~b `*~x~~*` <b title=\"*~x~~*\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~x~ ~a~~b ~a~~b ~a~~b ~a~~b suffix",
+      "html": "<p>prefix ~a<del>b ~a</del>b ~a<del>b ~a</del>b <code>*~x~~*</code> <b title=\"*~x~~*\"> <a href=\"path~~~\"><del><em>x</em></del></a> <a href=\"mailto:local_abc@example.org\">local_abc@example.org</a> <a href=\"https://example.org/p*~q~~r\">https://example.org/p*~q~~r</a> <del>x</del> ~a<del>b ~a</del>b ~a<del>b ~a</del>b suffix</p>\n"
+    },
+    {
+      "name": "incremental \"prefix ~a~~b ~a~~b ~a~~b ~a~~b ~~~x~~~~~~~~~~~~~~~~~y~~~ `*~x~~*` <b title=\\\"*~x~~*\\\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~x~ ~a~~b ~a~~b ~a~~b ~a~~b suffix\"",
+      "markdown": "prefix ~a~~b ~a~~b ~a~~b ~a~~b ~~~x~~~~~~~~~~~~~~~~~y~~~ `*~x~~*` <b title=\"*~x~~*\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~x~ ~a~~b ~a~~b ~a~~b ~a~~b suffix",
+      "html": "<p>prefix ~a<del>b ~a</del>b ~a<del>b ~a</del>b ~~~x~~~~~~~~~~~~~~~~~y~~~ <code>*~x~~*</code> <b title=\"*~x~~*\"> <a href=\"path~~~\"><del><em>x</em></del></a> <a href=\"mailto:local_abc@example.org\">local_abc@example.org</a> <a href=\"https://example.org/p*~q~~r\">https://example.org/p*~q~~r</a> <del>x</del> ~a<del>b ~a</del>b ~a<del>b ~a</del>b suffix</p>\n"
+    },
+    {
+      "name": "incremental \"prefix ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b suffix\"",
+      "markdown": "prefix ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b suffix",
+      "html": "<p>prefix ~~a<del>b ~~a</del>b ~~a<del>b ~~a</del>b ~~a<del>b ~~a</del>b ~~a<del>b ~~a</del>b suffix</p>\n"
+    },
+    {
+      "name": "incremental \"prefix ~~a~b ~~a~b ~~a~b ~~a~b ~~x~~ ~~a~b ~~a~b ~~a~b ~~a~b suffix\"",
+      "markdown": "prefix ~~a~b ~~a~b ~~a~b ~~a~b ~~x~~ ~~a~b ~~a~b ~~a~b ~~a~b suffix",
+      "html": "<p>prefix ~~a<del>b ~~a</del>b ~~a<del>b ~~a</del>b <del>x</del> ~~a<del>b ~~a</del>b ~~a<del>b ~~a</del>b suffix</p>\n"
+    },
+    {
+      "name": "incremental \"prefix ~~a~b ~~a~b ~~a~b ~~a~b `*~x~~*` <b title=\\\"*~x~~*\\\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~~x~~ ~~a~b ~~a~b ~~a~b ~~a~b suffix\"",
+      "markdown": "prefix ~~a~b ~~a~b ~~a~b ~~a~b `*~x~~*` <b title=\"*~x~~*\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~~x~~ ~~a~b ~~a~b ~~a~b ~~a~b suffix",
+      "html": "<p>prefix ~~a<del>b ~~a</del>b ~~a<del>b ~~a</del>b <code>*~x~~*</code> <b title=\"*~x~~*\"> <a href=\"path~~~\"><del><em>x</em></del></a> <a href=\"mailto:local_abc@example.org\">local_abc@example.org</a> <a href=\"https://example.org/p*~q~~r\">https://example.org/p*~q~~r</a> <del>x</del> ~~a<del>b ~~a</del>b ~~a<del>b ~~a</del>b suffix</p>\n"
+    },
+    {
+      "name": "incremental \"prefix ~~a~b ~~a~b ~~a~b ~~a~b ~~~x~~~~~~~~~~~~~~~~~y~~~ `*~x~~*` <b title=\\\"*~x~~*\\\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~~x~~ ~~a~b ~~a~b ~~a~b ~~a~b suffix\"",
+      "markdown": "prefix ~~a~b ~~a~b ~~a~b ~~a~b ~~~x~~~~~~~~~~~~~~~~~y~~~ `*~x~~*` <b title=\"*~x~~*\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~~x~~ ~~a~b ~~a~b ~~a~b ~~a~b suffix",
+      "html": "<p>prefix ~~a<del>b ~~a</del>b ~~a<del>b ~~a</del>b ~~~x~~~~~~~~~~~~~~~~~y~~~ <code>*~x~~*</code> <b title=\"*~x~~*\"> <a href=\"path~~~\"><del><em>x</em></del></a> <a href=\"mailto:local_abc@example.org\">local_abc@example.org</a> <a href=\"https://example.org/p*~q~~r\">https://example.org/p*~q~~r</a> <del>x</del> ~~a<del>b ~~a</del>b ~~a<del>b ~~a</del>b suffix</p>\n"
+    }
+  ],
+  "sequences": [
+    {
+      "name": "crossing a formerly unmatched strike and emphasis closer",
+      "cases": [
+        "incremental \"*a ~~b c~~\"",
+        "crossed * then ~~",
+        "incremental \"*a ~~b* c\""
+      ]
+    },
+    {
+      "name": "exact widths, unmatched closers and literal triple runs",
+      "cases": [
+        "incremental \"prefix ~~a suffix\"",
+        "exact tilde widths 2/2",
+        "exact tilde widths 1/2",
+        "exact tilde widths 1/1",
+        "exact tilde widths 3/3"
+      ]
+    },
+    {
+      "name": "nested widths and nearest mismatched opener",
+      "cases": [
+        "nested tilde widths 2/1/1/2",
+        "nested tilde widths 2/2/1/2",
+        "nested tilde widths 2/2/2/2",
+        "nested tilde widths 1/2/2/1"
+      ]
+    },
+    {
+      "name": "revealing and restoring closers in opaque code and destinations",
+      "cases": [
+        "incremental \"~~a `b~~` c\"",
+        "incremental \"~~a b~~ c\"",
+        "incremental \"~~a [b](path~~) c\"",
+        "incremental \"~~a [b] path~~) c\""
+      ]
+    },
+    {
+      "name": "Unicode positions and newline edits",
+      "cases": [
+        "incremental \"😀 ~~λ_2 *a*~~\"",
+        "incremental \"😀 ~λ_2 *a*~\"",
+        "incremental \"😀 ~λ_2\\n*a*~\""
+      ]
+    },
+    {
+      "name": "changing nesting between strike, emphasis and strong emphasis",
+      "cases": [
+        "nested * inside ~~",
+        "nested ~~ inside *",
+        "nested ~ inside __"
+      ]
+    },
+    {
+      "name": "restoring OPEN and BOTH tilde parent metadata after emphasis children",
+      "cases": [
+        "restore tilde parent ~ OPEN child * variant 0",
+        "restore tilde parent ~ OPEN child * variant 1",
+        "restore tilde parent ~ OPEN child * variant 2",
+        "restore tilde parent ~ OPEN child * variant 3",
+        "restore tilde parent ~ BOTH child * variant 0",
+        "restore tilde parent ~ BOTH child * variant 1",
+        "restore tilde parent ~ BOTH child * variant 2",
+        "restore tilde parent ~ BOTH child * variant 3"
+      ]
+    },
+    {
+      "name": "concatenating delimiters across single, double and triple tilde runs",
+      "cases": [
+        "effective flank skipping tilde \"prefix _b_~c suffix\"",
+        "effective flank skipping tilde \"prefix ~a~_b_ suffix\"",
+        "effective flank skipping tilde \"prefix *~ b~* suffix\"",
+        "effective flank skipping tilde \"prefix *~b ~* suffix\"",
+        "effective flank skipping tilde \"prefix _b_~~c suffix\"",
+        "effective flank skipping tilde \"prefix ~~a~~_b_ suffix\"",
+        "effective flank skipping tilde \"prefix *~~ b~~* suffix\"",
+        "effective flank skipping tilde \"prefix *~~b ~~* suffix\"",
+        "effective flank skipping tilde \"prefix _b_~~~c suffix\"",
+        "effective flank skipping tilde \"prefix ~~~a~~~_b_ suffix\"",
+        "effective flank skipping tilde \"prefix *~~~ b~~~* suffix\"",
+        "effective flank skipping tilde \"prefix *~~~b ~~~* suffix\""
+      ]
+    },
+    {
+      "name": "restoring effective flanks at escaped tildes and opaque atoms",
+      "cases": [
+        "effective flank at escape or atom \"prefix \\\\~_b_ suffix\"",
+        "effective flank at escape or atom \"prefix `a`~_b_ suffix\"",
+        "effective flank at escape or atom \"prefix <b>~_c_ suffix\"",
+        "effective flank at escape or atom \"prefix [a](b)~_c_ suffix\"",
+        "effective flank at escape or atom \"prefix ~a~https://example.org/p suffix\"",
+        "effective flank at escape or atom \"prefix ~a~local@example.org suffix\"",
+        "effective flank at escape or atom \"_b_\\\\~c\"",
+        "effective flank at escape or atom \"a\\\\~_b_\"",
+        "effective flank at escape or atom \"\\\\~~a~\"",
+        "effective flank at escape or atom \"~_a_~\"",
+        "effective flank at escape or atom \"_b_~~~ c\""
+      ]
+    },
+    {
+      "name": "repeated \"~a~~b \" cache invalidation and physical marker ordinals",
+      "cases": [
+        "incremental \"prefix ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b ~a~~b suffix\"",
+        "incremental \"prefix ~a~~b ~a~~b ~a~~b ~a~~b ~x~ ~a~~b ~a~~b ~a~~b ~a~~b suffix\"",
+        "incremental \"prefix ~a~~b ~a~~b ~a~~b ~a~~b `*~x~~*` <b title=\\\"*~x~~*\\\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~x~ ~a~~b ~a~~b ~a~~b ~a~~b suffix\"",
+        "incremental \"prefix ~a~~b ~a~~b ~a~~b ~a~~b ~~~x~~~~~~~~~~~~~~~~~y~~~ `*~x~~*` <b title=\\\"*~x~~*\\\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~x~ ~a~~b ~a~~b ~a~~b ~a~~b suffix\""
+      ]
+    },
+    {
+      "name": "repeated \"~~a~b \" cache invalidation and physical marker ordinals",
+      "cases": [
+        "incremental \"prefix ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b ~~a~b suffix\"",
+        "incremental \"prefix ~~a~b ~~a~b ~~a~b ~~a~b ~~x~~ ~~a~b ~~a~b ~~a~b ~~a~b suffix\"",
+        "incremental \"prefix ~~a~b ~~a~b ~~a~b ~~a~b `*~x~~*` <b title=\\\"*~x~~*\\\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~~x~~ ~~a~b ~~a~b ~~a~b ~~a~b suffix\"",
+        "incremental \"prefix ~~a~b ~~a~b ~~a~b ~~a~b ~~~x~~~~~~~~~~~~~~~~~y~~~ `*~x~~*` <b title=\\\"*~x~~*\\\"> [~*x*~](path~~~) local_abc@example.org https://example.org/p*~q~~r ~~x~~ ~~a~b ~~a~b ~~a~b ~~a~b suffix\""
+      ]
+    }
+  ]
+}
