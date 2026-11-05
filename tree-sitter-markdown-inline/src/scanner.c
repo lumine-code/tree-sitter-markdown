@@ -120,6 +120,9 @@ typedef struct {
     uint16_t unmatched_openers[29];
     uint32_t next_matched_marker[29][8];
     uint32_t marker_ordinal;
+    // Derived cache-row index; never part of the serialized state. A set bit
+    // may conservatively name an empty row until the next serialization.
+    uint32_t proof_contexts;
     uint8_t previous_flank;
     uint8_t delimiter_flank;
     uint8_t parent_context;
@@ -130,7 +133,7 @@ typedef struct {
     uint8_t pending_modulo;
     bool pending_can_open;
     bool pending_can_close;
-    bool pending_opening_phase;
+    uint8_t pending_opening_phase;
     InlineTokenPreparation preparation;
 } Scanner;
 
@@ -140,12 +143,16 @@ static unsigned serialize(Scanner *s, char *buffer) {
     // metadata is always retained, and dropped proofs only cost lookahead.
     unsigned masks = 0;
     unsigned boundaries = 0;
-    for (unsigned index = 0; index < 29; index++) {
+    uint32_t live_contexts = 0;
+    for (unsigned index = 0, contexts = s->proof_contexts; index < 29 && contexts; index++, contexts >>= 1) {
+        if (!(contexts & 1)) continue;
         masks += s->unmatched_openers[index] != 0;
+        unsigned old_boundaries = boundaries;
         for (unsigned bit = 0; bit < 8; bit++) {
             if (s->next_matched_marker[index][bit] <= s->marker_ordinal) s->next_matched_marker[index][bit] = 0;
             boundaries += s->next_matched_marker[index][bit] != 0;
         }
+        if (s->unmatched_openers[index] || boundaries != old_boundaries) live_contexts |= UINT32_C(1) << index;
     }
     if (!boundaries) s->marker_ordinal = 0;
     unsigned size = 0;
@@ -176,7 +183,8 @@ static unsigned serialize(Scanner *s, char *buffer) {
     buffer[size++] = (char)s->preparation.ending_flank;
     buffer[size++] = (char)s->preparation.ending_boundary;
     buffer[size++] = (char)masks;
-    for (unsigned index = 0; index < 29; index++) {
+    for (unsigned index = 0, contexts = live_contexts; index < 29 && contexts; index++, contexts >>= 1) {
+        if (!(contexts & 1)) continue;
         if (!s->unmatched_openers[index]) continue;
         buffer[size++] = (char)index;
         buffer[size++] = (char)s->unmatched_openers[index];
@@ -184,7 +192,11 @@ static unsigned serialize(Scanner *s, char *buffer) {
     }
     unsigned boundary_count_position = size++;
     unsigned stored_boundaries = 0;
-    for (unsigned index = 0; index < 29; index++) {
+    uint32_t stored_contexts = 0;
+    for (unsigned index = 0, contexts = live_contexts; index < 29 && contexts; index++, contexts >>= 1) {
+        if (!(contexts & 1)) continue;
+        uint32_t context_bit = UINT32_C(1) << index;
+        if (s->unmatched_openers[index]) stored_contexts |= context_bit;
         for (unsigned bit = 0; bit < 8; bit++) {
             if (!s->next_matched_marker[index][bit]) continue;
             if (size + 9 > TREE_SITTER_SERIALIZATION_BUFFER_SIZE) {
@@ -194,8 +206,10 @@ static unsigned serialize(Scanner *s, char *buffer) {
             buffer[size++] = (char)(index * 8 + bit);
             for (unsigned shift = 0; shift < 32; shift += 8) buffer[size++] = (char)(s->next_matched_marker[index][bit] >> shift);
             stored_boundaries++;
+            stored_contexts |= context_bit;
         }
     }
+    s->proof_contexts = stored_contexts;
     buffer[boundary_count_position] = (char)stored_boundaries;
     for (unsigned shift = 0; shift < 32; shift += 8) buffer[size++] = (char)(s->marker_ordinal >> shift);
     return size;
@@ -205,6 +219,7 @@ static void deserialize(Scanner *s, const char *buffer, unsigned length) {
     *s = (Scanner){.previous_flank = 1, .delimiter_flank = 1};
     if (length < 51 || length > TREE_SITTER_SERIALIZATION_BUFFER_SIZE) return;
     unsigned size = 0;
+    uint32_t proof_contexts = 0;
     s->code_span_delimiter_length = (uint8_t)(uint8_t)buffer[size++];
     s->latex_span_delimiter_length = (uint8_t)(uint8_t)buffer[size++];
     s->dialect_flags = (uint8_t)buffer[size++];
@@ -219,7 +234,7 @@ static void deserialize(Scanner *s, const char *buffer, unsigned length) {
     s->pending_modulo = (uint8_t)(uint8_t)buffer[size++];
     s->pending_can_open = (bool)(uint8_t)buffer[size++];
     s->pending_can_close = (bool)(uint8_t)buffer[size++];
-    s->pending_opening_phase = (bool)(uint8_t)buffer[size++];
+    s->pending_opening_phase = (uint8_t)buffer[size++];
     s->preparation.role = (InlineTokenRole)(uint8_t)buffer[size++];
     s->preparation.kind = (BareAutolinkKind)(uint8_t)buffer[size++];
     for (unsigned shift = 0; shift < 32; shift += 8) s->preparation.delimiter |= (int32_t)((uint32_t)(uint8_t)buffer[size++] << shift);
@@ -228,7 +243,7 @@ static void deserialize(Scanner *s, const char *buffer, unsigned length) {
     s->preparation.original_can_close = (bool)(uint8_t)buffer[size++];
     s->preparation.original_modulo = (uint8_t)(uint8_t)buffer[size++];
     for (unsigned shift = 0; shift < 32; shift += 8) s->preparation.next_remaining |= (uint32_t)((uint32_t)(uint8_t)buffer[size++] << shift);
-    s->preparation.next_opening_phase = (bool)(uint8_t)buffer[size++];
+    s->preparation.next_opening_phase = (uint8_t)buffer[size++];
     s->preparation.ending_flank = (uint8_t)(uint8_t)buffer[size++];
     s->preparation.ending_boundary = (bool)(uint8_t)buffer[size++];
     unsigned masks = (uint8_t)buffer[size++];
@@ -236,6 +251,7 @@ static void deserialize(Scanner *s, const char *buffer, unsigned length) {
     for (unsigned entry = 0; entry < masks; entry++) {
         unsigned index = (uint8_t)buffer[size++];
         if (index >= 29) goto invalid;
+        proof_contexts |= UINT32_C(1) << index;
         s->unmatched_openers[index] = (uint16_t)(uint8_t)buffer[size++];
         s->unmatched_openers[index] |= (uint16_t)((uint16_t)(uint8_t)buffer[size++] << 8);
     }
@@ -244,11 +260,19 @@ static void deserialize(Scanner *s, const char *buffer, unsigned length) {
     for (unsigned entry = 0; entry < boundaries; entry++) {
         unsigned index = (uint8_t)buffer[size++];
         if (index >= 232) goto invalid;
+        proof_contexts |= UINT32_C(1) << (index / 8);
         for (unsigned shift = 0; shift < 32; shift += 8) s->next_matched_marker[index / 8][index % 8] |= (uint32_t)(uint8_t)buffer[size++] << shift;
     }
     for (unsigned shift = 0; shift < 32; shift += 8) s->marker_ordinal |= (uint32_t)(uint8_t)buffer[size++] << shift;
+    s->proof_contexts = proof_contexts;
     if (s->dialect_flags < 4 && s->parent_context < 29 && s->previous_flank < 4 && s->delimiter_flank < 4 && s->pending_modulo < 3 &&
         s->preparation.original_modulo < 3 && s->preparation.ending_flank < 4 &&
+        s->pending_opening_phase <= INLINE_OPENING_STRONG_REMAINDER &&
+        s->preparation.next_opening_phase <= INLINE_OPENING_STRONG_REMAINDER &&
+        (s->pending_opening_phase != INLINE_OPENING_STRONG_REMAINDER || s->pending_count % 2 == 0) &&
+        (s->preparation.next_opening_phase != INLINE_OPENING_STRONG_REMAINDER ||
+         (s->preparation.next_remaining % 2 == 0 &&
+          (s->preparation.delimiter == '*' || s->preparation.delimiter == '_'))) &&
         s->preparation.role <= INLINE_TOKEN_CLOSE && s->preparation.kind <= BARE_AUTOLINK_EMAIL &&
         (s->preparation.role == INLINE_TOKEN_NONE || s->preparation.length > 0) &&
         (s->preparation.role != INLINE_TOKEN_BARE || s->preparation.kind != BARE_AUTOLINK_NONE) &&
@@ -364,7 +388,7 @@ static bool image_has_closer(TSLexer *lexer) {
 static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
     if (valid_symbols[TRIGGER_ERROR]) return error(lexer);
     if (valid_symbols[STRIKETHROUGH_ENABLED]) s->dialect_flags |= 1;
-    if (valid_symbols[BARE_AUTOLINKS_ENABLED]) s->dialect_flags |= 2;
+    if (valid_symbols[BARE_AUTOLINKS_ENABLED]) s->dialect_flags |= 3;
     const unsigned ghosts[] = {LAST_TOKEN_OTHER, LAST_TOKEN_WHITESPACE, LAST_TOKEN_PUNCTUATION, LAST_TOKEN_BOUNDARY};
     for (uint8_t flank = 0; flank < 4; flank++) {
         if (valid_symbols[ghosts[flank]] && (s->previous_flank != flank || s->delimiter_flank != flank || s->prepared)) {
@@ -448,6 +472,7 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
             .next_matched_marker = s->next_matched_marker[s->parent_context],
             .marker_ordinal = s->marker_ordinal,
         };
+        s->proof_contexts |= UINT32_C(1) << s->parent_context;
         s->preparation = prepare_inline_token(lexer, options);
         if (s->preparation.role == INLINE_TOKEN_NONE) return false;
         s->prepared = true;
@@ -488,6 +513,7 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
         if (plan->role == INLINE_TOKEN_CLOSE) {
             s->unmatched_openers[s->parent_context] = 0;
             memset(s->next_matched_marker[s->parent_context], 0, sizeof(s->next_matched_marker[0]));
+            s->proof_contexts &= ~(UINT32_C(1) << s->parent_context);
         }
         if (plan->role == INLINE_TOKEN_OPEN) {
             // Modulo-zero emphasis has identical pairing eligibility in
@@ -498,6 +524,7 @@ static bool scan(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
             s->parent_context = (uint8_t)(plan->delimiter == '~' ? 24 + plan->length + (plan->original_can_close ? 2 : 0) : frame * 2 + plan->length);
             s->unmatched_openers[s->parent_context] = 0;
             memset(s->next_matched_marker[s->parent_context], 0, sizeof(s->next_matched_marker[0]));
+            s->proof_contexts &= ~(UINT32_C(1) << s->parent_context);
         }
         return true;
     }

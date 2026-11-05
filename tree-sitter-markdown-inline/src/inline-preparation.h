@@ -162,7 +162,7 @@ static InlinePreparation prepare_inline(TSLexer *lexer, bool left_boundary,
             uint32_t matches = emphasis_opening_plan_in_context(&virtual_lexer.lexer,
                 '_', (uint32_t)count, opens, closes, in_link_text, true, NULL,
                 parent_delimiter, parent_modulo, parent_can_close,
-                parent_unit, count % 3, false, NULL, NULL, NULL, 0, strikethrough,
+                parent_unit, count % 3, false, NULL, NULL, NULL, NULL, 0, strikethrough,
                 prev_whitespace ? ' ' : prev_punctuation ? '!' : 'a');
             if (matches != 0) goto done;
         }
@@ -190,6 +190,12 @@ typedef enum {
     INLINE_TOKEN_CLOSE
 } InlineTokenRole;
 
+typedef enum {
+    INLINE_OPENING_NONE,
+    INLINE_OPENING_PLANNED,
+    INLINE_OPENING_STRONG_REMAINDER,
+} InlineOpeningPhase;
+
 typedef struct {
     bool prev_whitespace;
     bool prev_punctuation;
@@ -207,7 +213,7 @@ typedef struct {
     unsigned pending_modulo;
     bool pending_can_open;
     bool pending_can_close;
-    bool pending_opening_phase;
+    uint8_t pending_opening_phase;
     uint16_t *impossible_openers;
     uint16_t *unmatched_root_openers;
     uint32_t *next_matched_marker;
@@ -223,7 +229,7 @@ typedef struct {
     bool original_can_close;
     uint8_t original_modulo;
     uint32_t next_remaining;
-    bool next_opening_phase;
+    uint8_t next_opening_phase;
     uint8_t ending_flank;
     bool ending_boundary;
 } InlineTokenPreparation;
@@ -246,13 +252,17 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
     int32_t first = emphasis_character(&input, 0);
     bool pending = options.pending_active && options.pending_delimiter == first &&
         options.pending_count != 0;
-    if (options.bare_autolinks) {
+    // Neither marker starts an extended autolink. A partially consumed
+    // underscore run must first resolve its original emphasis metadata;
+    // the dedicated fallback below recognizes any unmatched email prefix.
+    if (options.bare_autolinks && first != '*' && first != '~' &&
+        !(pending && first == '_')) {
         InlinePreparationLexer virtual_lexer = inline_preparation_virtual(&input, 0);
         InlinePreparation bare = prepare_inline(&virtual_lexer.lexer,
             options.left_boundary, options.prev_whitespace, options.prev_punctuation,
             options.parent_delimiter, options.parent_can_close,
             options.parent_modulo, options.in_link_text, options.parent_unit, options.strikethrough);
-        if (bare.kind != BARE_AUTOLINK_NONE && !(pending && first == '_')) {
+        if (bare.kind != BARE_AUTOLINK_NONE) {
             result.role = INLINE_TOKEN_BARE;
             result.kind = bare.kind;
             result.length = bare.length;
@@ -289,7 +299,7 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
     result.original_can_open = opens;
     result.original_can_close = closes;
     result.original_modulo = (uint8_t)modulo;
-    result.next_opening_phase = opening_phase;
+    result.next_opening_phase = opening_phase ? INLINE_OPENING_PLANNED : INLINE_OPENING_NONE;
     result.ending_flank = 2;
     result.ending_boundary = true;
     uint32_t parent_unit = options.parent_unit == 2 ? 2 : 1;
@@ -301,6 +311,7 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
         result.length = parent_unit < remaining ? parent_unit : remaining;
     } else {
         uint8_t leftmost_unit = 0;
+        bool strong_remainder = false;
         uint32_t matches = 0;
         unsigned bit = emphasis_class(first, closes, modulo);
         bool scope_cache = first != '~' || options.parent_delimiter != '~';
@@ -310,14 +321,24 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
             options.unmatched_root_openers != NULL && (*options.unmatched_root_openers & (1u << bit));
         impossible |= scope_cache && !pending && !options.in_link_text && first != '_' &&
             options.next_matched_marker != NULL && options.marker_ordinal < options.next_matched_marker[emphasis_marker_class(bit)];
-        if (opens && !impossible) {
+        // The first complete plan proves the order of all opening groups.
+        // Still inspect the entire physical run above; its original flanks,
+        // modulo and lookahead dependency must survive partial consumption.
+        bool cached_strong = pending &&
+            options.pending_opening_phase == INLINE_OPENING_STRONG_REMAINDER &&
+            first != '~' && count == remaining && remaining >= 2 && remaining % 2 == 0;
+        if (opens && !impossible && cached_strong) {
+            matches = remaining;
+            leftmost_unit = 2;
+            strong_remainder = remaining > 2;
+        } else if (opens && !impossible) {
             InlinePreparationLexer virtual_lexer = inline_preparation_virtual(&input, remaining);
             matches = emphasis_opening_plan_in_context(&virtual_lexer.lexer, first,
                 remaining, opens, closes, options.in_link_text, options.bare_autolinks,
                 options.in_link_text ? NULL : options.impossible_openers,
                 options.parent_delimiter, options.parent_modulo, options.parent_can_close,
                 options.parent_delimiter ? parent_unit : 0,
-                modulo, opening_phase, &leftmost_unit,
+                modulo, opening_phase, &leftmost_unit, &strong_remainder,
                 options.in_link_text || pending ? NULL : options.unmatched_root_openers,
                 options.in_link_text || pending ? NULL : options.next_matched_marker,
                 options.marker_ordinal, options.strikethrough,
@@ -353,7 +374,8 @@ static InlineTokenPreparation prepare_inline_token(TSLexer *lexer, InlineTokenOp
             if (leftmost_unit == 0 || leftmost_unit > remaining) abort();
             result.role = INLINE_TOKEN_OPEN;
             result.length = leftmost_unit;
-            result.next_opening_phase = true;
+            result.next_opening_phase = strong_remainder && first != '~'
+                ? INLINE_OPENING_STRONG_REMAINDER : INLINE_OPENING_PLANNED;
         }
     }
     result.next_remaining = remaining - result.length;

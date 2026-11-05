@@ -396,12 +396,14 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
                                         unsigned original_modulo,
                                         bool opening_phase,
                                         uint8_t *out_leftmost_unit,
+                                        bool *out_strong_remainder,
                                         uint16_t *unmatched_root_openers,
                                         uint32_t *next_matched_marker,
                                         uint32_t marker_ordinal,
                                         bool strikethrough,
                                         int32_t before_delimiter) {
     if (out_leftmost_unit != NULL) *out_leftmost_unit = 0;
+    if (out_strong_remainder != NULL) *out_strong_remainder = false;
     if (!can_open || count == 0) return 0;
     EmphasisLookahead input = {.lexer = lexer};
     size_t capacity = 0;
@@ -423,6 +425,7 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
     int32_t previous = strikethrough && delimiter == '~' ? before_delimiter : delimiter;
     int32_t physical_previous = delimiter;
     uint32_t matched = 0;
+    bool all_prior_groups_strong = true;
     uint16_t compatible_openers = 0;
     uint16_t matched_classes = 0;
     bool parent_closed = false;
@@ -556,6 +559,12 @@ static uint32_t emphasis_opening_plan_in_context(TSLexer *lexer, int32_t delimit
             runs[opening].remaining -= used;
             runs[current].remaining -= used;
             if (opening == current_run) {
+                // Matches consume this run from the right. After emitting the
+                // final (leftmost) group, only these earlier groups remain.
+                if (out_strong_remainder != NULL) {
+                    *out_strong_remainder = matched != 0 && all_prior_groups_strong;
+                }
+                all_prior_groups_strong &= used == 2;
                 matched += (uint32_t)used;
                 if (out_leftmost_unit != NULL) *out_leftmost_unit = (uint8_t)used;
             }
@@ -626,7 +635,7 @@ static uint32_t emphasis_opening_matches_in_context(TSLexer *lexer, int32_t deli
                                         uint32_t parent_remaining) {
     return emphasis_opening_plan_in_context(lexer, delimiter, count, can_open,
         can_close, in_link_text, bare_autolinks, impossible_openers, parent_delimiter,
-        parent_modulo, parent_can_close, parent_remaining, count % 3, false, NULL, NULL, NULL, 0, false, ' ');
+        parent_modulo, parent_can_close, parent_remaining, count % 3, false, NULL, NULL, NULL, NULL, 0, false, ' ');
 }
 
 static uint32_t emphasis_opening_matches(TSLexer *lexer, int32_t delimiter,
