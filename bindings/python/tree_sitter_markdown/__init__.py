@@ -15,7 +15,7 @@ except _PackageNotFoundError:
 if _runtime_version == "0.26.0":
     raise ImportError(
         "tree-sitter 0.26.0 can crash while traversing Markdown trees. "
-        "Install tree-sitter-markdown[core] or tree-sitter>=0.25.2,<0.26."
+        "Install tree-sitter-markdown[core] or tree-sitter>=0.25.2,<0.27,!=0.26.0."
     )
 
 from ._binding import inline_language, language

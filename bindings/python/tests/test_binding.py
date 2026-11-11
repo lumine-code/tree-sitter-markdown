@@ -107,7 +107,7 @@ with patch('importlib.metadata.version', return_value='0.26.0'):
         import tree_sitter_markdown
     except ImportError as exc:
         assert '0.26.0 can crash' in str(exc), str(exc)
-        assert 'tree-sitter>=0.25.2,<0.26' in str(exc), str(exc)
+        assert 'tree-sitter>=0.25.2,<0.27,!=0.26.0' in str(exc), str(exc)
     else:
         raise AssertionError('Unsafe runtime was accepted')
 assert 'tree_sitter' not in sys.modules

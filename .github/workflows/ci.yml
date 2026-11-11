@@ -85,7 +85,32 @@ jobs:
         run: |
           cargo +stable test --all-features
           cargo +stable package --allow-dirty
-      - name: Build and test Python bindings
+      - name: Build and test Python source distribution
+        shell: bash
         run: |
-          python -m pip install '.[core]'
+          python -m pip install build
+          python -m build
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tarfile
+          import zipfile
+
+          sdists = list(Path("dist").glob("*.tar.gz"))
+          wheels = list(Path("dist").glob("*.whl"))
+          assert len(sdists) == len(wheels) == 1, (sdists, wheels)
+          with tarfile.open(sdists[0]) as source, zipfile.ZipFile(wheels[0]) as wheel:
+              for filename in ("LICENSE", "THIRD_PARTY_NOTICES"):
+                  expected = Path(filename).read_bytes()
+                  source_files = [entry for entry in source.getmembers()
+                                  if entry.isfile() and entry.name.split("/", 1)[-1] == filename]
+                  wheel_files = [entry for entry in wheel.namelist()
+                                 if entry.endswith(f".dist-info/licenses/{filename}")]
+                  assert len(source_files) == len(wheel_files) == 1, filename
+                  assert source.extractfile(source_files[0]).read() == expected, filename
+                  assert wheel.read(wheel_files[0]) == expected, filename
+          subprocess.check_call([sys.executable, "-m", "pip", "install", f"{wheels[0].resolve()}[core]"])
+          PY
           python -m unittest discover -s bindings/python/tests -v
+          python -m pip check

@@ -25,7 +25,7 @@ readme = "README.md"
 Homepage = "https://github.com/lumine-code/tree-sitter-markdown"
 
 [project.optional-dependencies]
-core = ["tree-sitter>=0.25.2,<0.26"]
+core = ["tree-sitter>=0.25.2,<0.27,!=0.26.0"]
 
 [tool.cibuildwheel]
 build = "cp310-*"
