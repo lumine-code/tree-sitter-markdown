@@ -8,7 +8,7 @@ let package = Package(
         .library(name: "TreeSitterMarkdown", targets: ["TreeSitterMarkdown", "TreeSitterMarkdownInline"]),
     ],
     dependencies: [
-        .package(name: "SwiftTreeSitter", url: "https://github.com/tree-sitter/swift-tree-sitter", from: "0.10.0"),
+        .package(url: "https://github.com/tree-sitter/swift-tree-sitter", exact: "0.10.0"),
     ],
     targets: [
         .target(
@@ -44,7 +44,7 @@ let package = Package(
         .testTarget(
             name: "TreeSitterMarkdownTests",
             dependencies: [
-                "SwiftTreeSitter",
+                .product(name: "SwiftTreeSitter", package: "swift-tree-sitter"),
                 "TreeSitterMarkdown",
                 "TreeSitterMarkdownInline",
             ],
