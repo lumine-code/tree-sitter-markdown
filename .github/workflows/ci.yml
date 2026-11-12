@@ -114,3 +114,23 @@ jobs:
           PY
           python -m unittest discover -s bindings/python/tests -v
           python -m pip check
+
+  swift:
+    name: Swift bindings
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_ref || inputs.ref || github.sha }}
+      - name: Inspect Swift toolchain
+        run: swift --version
+      - name: Resolve current Swift dependencies
+        run: swift package update
+      - name: Test Swift bindings
+        run: swift test
+      - name: Preserve resolved Swift dependencies
+        uses: actions/upload-artifact@v7
+        with:
+          name: markdown-swift-package-resolved
+          path: Package.resolved
+          if-no-files-found: error
