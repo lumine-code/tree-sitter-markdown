@@ -36,7 +36,7 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.14.0",
     "prebuildify": "^6.0.1",
-    "prettier": "^3.10.0",
+    "prettier": "^3.10.1",
     "tree-sitter-cli": "0.27.2",
     "web-tree-sitter": "^0.27.2",
     "tree-sitter": "^0.25.1"
